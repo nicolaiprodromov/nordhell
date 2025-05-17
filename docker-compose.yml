@@ -1,0 +1,30 @@
+services:
+  llustr-proxy-tunnel:
+    build: .
+    image: llustr-proxy-tunnel
+    container_name: llustr-proxy-tunnel
+    networks:
+      - llustr-proxy-network
+    cap_add:
+      - NET_ADMIN  # Required for VPN
+      - SYS_MODULE
+    devices:
+      - /dev/net/tun:/dev/net/tun  # Required for VPN
+    ports:
+      - "1080:1080"  # Expose SOCKS5 port
+    restart: unless-stopped
+    init: true  # Faster initialization and proper signal handling
+    dns:
+      - 1.1.1.1  # Cloudflare DNS for faster resolution
+      - 8.8.8.8  # Google DNS as backup
+    # Configure healthcheck to test the SOCKS proxy directly
+    healthcheck:
+      test: ["CMD", "sh", "-c", "nc -z 127.0.0.1 1080 && ip link show tun0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  llustr-proxy-network:
+    name: llustr-proxy-network
