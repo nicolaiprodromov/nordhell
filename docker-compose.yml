@@ -1,8 +1,11 @@
 services:
   llustr-proxy-tunnel:
-    build: .
-    image: llustr-proxy-tunnel
-    container_name: llustr-proxy-tunnel
+    build:
+      context: .
+      args:
+        - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
+    image: llustr-proxy-tunnel-${VPN_CONFIG_NUM:-0}
+    container_name: llustr-proxy-tunnel-${VPN_CONFIG_NUM:-0}
     networks:
       - llustr-proxy-network
     cap_add:
@@ -11,7 +14,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun  # Required for VPN
     ports:
-      - "1080:1080"  # Expose SOCKS5 port
+      - "${SOCKS_PORT:-1080}:1080"  # Expose SOCKS5 port on dynamic host port
     restart: unless-stopped
     init: true  # Faster initialization and proper signal handling
     dns:
@@ -28,3 +31,4 @@ services:
 networks:
   llustr-proxy-network:
     name: llustr-proxy-network
+    # Using the default driver which is 'bridge'
