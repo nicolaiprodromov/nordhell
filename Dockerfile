@@ -38,10 +38,10 @@ COPY auth.txt /etc/openvpn/auth.txt
 RUN echo "auth-user-pass /etc/openvpn/auth.txt" >> /etc/openvpn/config/nordvpn.ovpn
 
 # Copy the sockd.conf file
-COPY sockd.conf /etc/dante/sockd.conf
+COPY configs/sockd.conf /etc/dante/sockd.conf
 
 # Copy the startup script
-COPY start.sh /start.sh
+COPY scripts/start.sh /start.sh
 RUN chmod +x /start.sh
 
 # Expose the SOCKS5 port

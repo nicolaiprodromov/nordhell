@@ -1,5 +1,43 @@
 #!/bin/bash
 # llustr.sh - Script to build and run the VPN container with a specific config
+
+# Function to download fresh VPN configurations
+download_fresh_configs() {
+    local UPDATE_CONFIGS=$1
+    local FORCE_DOWNLOAD=false
+    
+    # Check if vpn-configs directory exists and has .ovpn files
+    if [ ! -d "vpn-configs" ] || [ -z "$(ls -A vpn-configs/*.ovpn 2>/dev/null)" ]; then
+        echo "No VPN configurations found. Will download configs regardless of --update-configs flag."
+        FORCE_DOWNLOAD=true
+    fi
+    
+    # Download configs if explicitly requested or if no configs exist
+    if [ "$UPDATE_CONFIGS" = "true" ] || [ "$FORCE_DOWNLOAD" = "true" ]; then
+        echo "Downloading NordVPN configurations..."
+        if [ -f "utils/download_nordvpn_configs.py" ]; then
+            python3 utils/download_nordvpn_configs.py --output ./vpn-configs
+            if [ $? -ne 0 ]; then
+                echo "Warning: Failed to download VPN configurations."
+                if [ "$FORCE_DOWNLOAD" = "true" ]; then
+                    echo "Error: No existing VPN configurations found and failed to download. Exiting."
+                    exit 1
+                else
+                    echo "Using existing configs."
+                fi
+            else
+                echo "VPN configurations successfully updated."
+            fi
+        else
+            echo "Warning: download_nordvpn_configs.py script not found in utils directory."
+            if [ "$FORCE_DOWNLOAD" = "true" ]; then
+                echo "Error: No existing VPN configurations found and download script missing. Exiting."
+                exit 1
+            fi
+        fi
+    fi
+}
+
 # Function to calculate checksums of relevant files
 calculate_checksums() {
     local VPN_CONFIG_NUM=$1
@@ -8,7 +46,7 @@ calculate_checksums() {
     # Create checksums directory if it doesn't exist
     mkdir -p .llustr_checksums
     # Calculate checksums for relevant files
-    sha256sum Dockerfile auth.txt sockd.conf start.sh "$CONFIG_FILE" 2>/dev/null > .llustr_checksums/${VPN_CONFIG_NUM}.sum.new
+    sha256sum Dockerfile auth.txt configs/sockd.conf scripts/start.sh "$CONFIG_FILE" 2>/dev/null > .llustr_checksums/${VPN_CONFIG_NUM}.sum.new
 }
 # Function to compare checksums
 checksums_match() {
@@ -21,6 +59,7 @@ checksums_match() {
     diff -q "$CHECKSUM_FILE" "$NEW_CHECKSUM_FILE" >/dev/null
     return $?
 }
+
 # Function to start a single VPN tunnel
 start_vpn_tunnel() {
     local VPN_CONFIG_NUM=$1
@@ -100,12 +139,17 @@ start_vpn_tunnel() {
 
 # Parse command line arguments
 FORCE_BUILD="false"
+UPDATE_CONFIGS="false"
 VPN_CONFIG=""
 # Process arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
         --build)
             FORCE_BUILD="true"
+            shift
+            ;;
+        --update-configs)
+            UPDATE_CONFIGS="true"
             shift
             ;;
         *)
@@ -118,6 +162,10 @@ done
 if [ -z "$VPN_CONFIG" ]; then
     VPN_CONFIG="0"
 fi
+
+# Download fresh configs if requested
+download_fresh_configs "$UPDATE_CONFIGS"
+
 # Check for range syntax (e.g., 0-4)
 if [[ "$VPN_CONFIG" =~ ^([0-9]+)-([0-9]+)$ ]]; then
     # Extract start and end of range

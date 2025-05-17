@@ -13,6 +13,13 @@ from collections import defaultdict
 import re
 
 def download_nordvpn_zip(output_dir, protocol='tcp', count=200, max_per_country=1, clear_folder=True):
+    # Ensure we're using absolute path if relative path is provided
+    if not os.path.isabs(output_dir):
+        # Assuming this script is in utils/ directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+        output_dir = os.path.join(project_root, output_dir)
+    
     # Clear the output directory if requested
     if clear_folder and os.path.exists(output_dir):
         print(f"Clearing existing configs from {output_dir}...")

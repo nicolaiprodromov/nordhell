@@ -2,7 +2,7 @@
 # llustr-list.sh - List all active VPN tunnels
 
 echo "-------------------------------------"
-echo "Active VPN Tunnels:"
+echo "LLUSTR TNNLs:"
 echo "-------------------------------------"
 
 # Check if any llustr containers are running
@@ -37,13 +37,4 @@ for CONTAINER in $CONTAINERS; do
     # Print the information
     printf "%-25s %-8s %-25s %-30s\n" "$CONTAINER" "$PORT" "$STATUS" "$VPN_SERVER"
 done
-
-echo "-------------------------------------"
-echo "To use a tunnel with curl:   export http_proxy=socks5h://localhost:<PORT>"
-echo "To use a tunnel with wget:   export https_proxy=socks5h://localhost:<PORT>"
-echo "To stop a tunnel:            ./llustr-stop.sh <CONFIG_NUM>"
-echo "To start a new tunnel:       ./llustr.sh <CONFIG_NUM>"
-echo "-------------------------------------"
-echo "To stop a tunnel: docker compose -p llustr-<ID> down"
-echo "To create a new tunnel: ./llustr.sh <CONFIG_ID>"
 echo "-------------------------------------"

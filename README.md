@@ -6,13 +6,17 @@ A Docker-based proxy system that uses NordVPN configurations for maintaining mul
 
 - `Dockerfile` - Container configuration for the VPN proxy
 - `docker-compose.yml` - Multi-container setup
-- `download_nordvpn_configs.py` - Script for downloading NordVPN configuration files
-- `sockd.conf` - Dante SOCKS proxy configuration
-- `start.sh` - Container startup script
 - `llustr.sh` - Script to start VPN tunnels with specific configs
 - `llustr-list.sh` - Script to list all active VPN tunnels
 - `llustr-stop.sh` - Script to stop specific or all VPN tunnels
+- `scripts/` - Additional shell scripts for system operation
+  - `start.sh` - Container startup script
+- `configs/` - Configuration files
+  - `sockd.conf` - Dante SOCKS proxy configuration
+- `utils/` - Utility scripts
+  - `download_nordvpn_configs.py` - Script for downloading NordVPN configuration files
 - `tests/` - Test files for the proxy functionality
+- `vpn-configs/` - Directory for VPN configuration files
 
 ## Setup
 
@@ -38,6 +42,18 @@ Force rebuild of a VPN tunnel image:
 ```bash
 ./llustr.sh --build 29  # Start a tunnel with config #29 and force a rebuild
 ```
+
+Update VPN configuration files before starting a tunnel:
+```bash
+./llustr.sh --update-configs 29  # Download fresh NordVPN configs, then start tunnel #29
+```
+
+Options can be combined:
+```bash
+./llustr.sh --update-configs --build 0-4  # Update configs, force rebuild, and start tunnels 0-4
+```
+
+**Note:** If no VPN configuration files are found in the `vpn-configs` directory, the script will automatically download them even if the `--update-configs` flag is not provided.
 
 By default, tunnels will only be rebuilt when necessary (when configuration files have changed).
 
