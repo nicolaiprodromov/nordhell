@@ -3,10 +3,10 @@
 
 # Check if an argument was provided
 if [ -z "$1" ]; then
-    echo "Usage: ./llustr-stop.sh <CONFIG_ID|all>"
+    echo "Usage: ./llustr-stop.sh <ID|all>"
     echo "Examples:"
-    echo "  ./llustr-stop.sh 0     # Stop VPN tunnel for config 0"
-    echo "  ./llustr-stop.sh all   # Stop all VPN tunnels"
+    echo "  ./llustr-stop.sh 0     # Stop tunnel [0]"
+    echo "  ./llustr-stop.sh all   # Stop all tunnels"
     echo
     echo "Currently running tunnels:"
     
@@ -14,7 +14,7 @@ if [ -z "$1" ]; then
     CONTAINERS=$(docker ps --filter "name=llustr-proxy-tunnel-" --format "{{.Names}}")
     
     if [ -z "$CONTAINERS" ]; then
-        echo "  No active VPN tunnels found."
+        echo "  No active tunnels found."
     else
         for CONTAINER in $CONTAINERS; do
             CONFIG_ID=$(echo $CONTAINER | sed 's/.*-//')
@@ -28,13 +28,13 @@ fi
 
 # If argument is "all", stop all tunnels
 if [ "$1" = "all" ]; then
-    echo "Stopping all VPN tunnels..."
+    echo "Stopping all tunnels..."
     
     # Get all running container IDs
     CONTAINERS=$(docker ps -q --filter "name=llustr-proxy-tunnel-")
     
     if [ -z "$CONTAINERS" ]; then
-        echo "No active VPN tunnels found."
+        echo "No active tunnels found."
         exit 0
     fi
     
@@ -46,7 +46,7 @@ if [ "$1" = "all" ]; then
         COMPOSE_PROJECT_NAME=$PROJECT docker compose down
     done
     
-    echo "All VPN tunnels stopped."
+    echo "All tunnels stopped."
 else
     # Stop a specific tunnel
     CONFIG_NUM=$1
@@ -54,7 +54,7 @@ else
     
     # Check if the container is running
     if ! docker ps -q --filter "name=$CONTAINER_NAME" | grep -q .; then
-        echo "Error: VPN tunnel for config $CONFIG_NUM is not running."
+        echo "Error: tunnel for config $CONFIG_NUM is not running."
         exit 1
     fi
     
@@ -62,5 +62,5 @@ else
     echo "Stopping VPN tunnel for config $CONFIG_NUM..."
     COMPOSE_PROJECT_NAME="llustr-$CONFIG_NUM" docker compose down
     
-    echo "VPN tunnel $CONTAINER_NAME stopped."
+    echo "tunnel $CONTAINER_NAME stopped."
 fi

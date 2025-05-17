@@ -5,10 +5,8 @@ calculate_checksums() {
     local VPN_CONFIG_NUM=$1
     local FORMATTED_NUM=$(printf "%03d" $VPN_CONFIG_NUM)
     local CONFIG_FILE=$(ls -1 vpn-configs/${FORMATTED_NUM}-*.tcp.ovpn 2>/dev/null)
-    
     # Create checksums directory if it doesn't exist
     mkdir -p .llustr_checksums
-    
     # Calculate checksums for relevant files
     sha256sum Dockerfile auth.txt sockd.conf start.sh "$CONFIG_FILE" 2>/dev/null > .llustr_checksums/${VPN_CONFIG_NUM}.sum.new
 }
@@ -17,10 +15,8 @@ checksums_match() {
     local VPN_CONFIG_NUM=$1
     local CHECKSUM_FILE=".llustr_checksums/${VPN_CONFIG_NUM}.sum"
     local NEW_CHECKSUM_FILE=".llustr_checksums/${VPN_CONFIG_NUM}.sum.new"
-    
     # If no previous checksum file exists, return false (1)
     [ ! -f "$CHECKSUM_FILE" ] && return 1
-    
     # Compare checksums
     diff -q "$CHECKSUM_FILE" "$NEW_CHECKSUM_FILE" >/dev/null
     return $?
@@ -29,7 +25,7 @@ checksums_match() {
 start_vpn_tunnel() {
     local VPN_CONFIG_NUM=$1
     local FORCE_BUILD=$2
-    echo "===== Starting VPN Tunnel for Config #$VPN_CONFIG_NUM ====="
+    echo "===== Starting LLUSTR TNNL [$VPN_CONFIG_NUM] ====="
     # Format the number with leading zeros
     local FORMATTED_NUM=$(printf "%03d" $VPN_CONFIG_NUM)
     # Check if the config file exists
@@ -38,7 +34,6 @@ start_vpn_tunnel() {
         echo "Error: No VPN config found for number $VPN_CONFIG_NUM"
         return 1
     fi
-    echo "CONFIG: $CONFIG_FILE"
     # Check if container for this config is already running
     local EXISTING_CONTAINER=$(docker ps -q -f name=llustr-proxy-tunnel-${VPN_CONFIG_NUM})
     if [ ! -z "$EXISTING_CONTAINER" ]; then
@@ -64,7 +59,6 @@ start_vpn_tunnel() {
     done
     # Set the port for docker compose
     export SOCKS_PORT=$PORT
-    echo "PORT: $SOCKS_PORT"
     # Set a unique project name based on VPN config number
     # This ensures each VPN tunnel gets its own isolated Docker Compose project
     local COMPOSE_PROJECT_NAME="llustr-${VPN_CONFIG_NUM}"
@@ -75,7 +69,7 @@ start_vpn_tunnel() {
     calculate_checksums $VPN_CONFIG_NUM
     # Skip build unless forced or checksums don't match
     if [ "$FORCE_BUILD" = "true" ] || ! checksums_match $VPN_CONFIG_NUM; then
-        echo "Building Docker image with config $VPN_CONFIG_NUM..."
+        echo "Building tunnel [$VPN_CONFIG_NUM]"
         docker compose build 
         # Save new checksums
         mv .llustr_checksums/${VPN_CONFIG_NUM}.sum.new .llustr_checksums/${VPN_CONFIG_NUM}.sum
