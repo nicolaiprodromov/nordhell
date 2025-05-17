@@ -40,3 +40,7 @@ auth.txt
 # VPN configuration files
 vpn-configs/
 vpn-configs/*
+
+# LLUSTR checksums
+.llustr_checksums/
+.llustr_checksums/*

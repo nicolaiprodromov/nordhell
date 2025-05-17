@@ -34,6 +34,13 @@ Start multiple VPN tunnels using a range:
 ./llustr.sh 0-4  # Start tunnels for configs 0, 1, 2, 3, and 4
 ```
 
+Force rebuild of a VPN tunnel image:
+```bash
+./llustr.sh --build 29  # Start a tunnel with config #29 and force a rebuild
+```
+
+By default, tunnels will only be rebuilt when necessary (when configuration files have changed).
+
 ### Managing VPN Tunnels
 
 List all active VPN tunnels:
