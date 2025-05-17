@@ -1,5 +1,5 @@
 #!/bin/bash
-# llustr.sh - Script to build and run the VPN container with a specific config
+# start.sh - Script to build and run the VPN container with a specific config
 
 # Function to download fresh VPN configurations
 download_fresh_configs() {
@@ -46,7 +46,7 @@ calculate_checksums() {
     # Create checksums directory if it doesn't exist
     mkdir -p .llustr_checksums
     # Calculate checksums for relevant files
-    sha256sum Dockerfile auth.txt configs/sockd.conf scripts/start.sh "$CONFIG_FILE" 2>/dev/null > .llustr_checksums/${VPN_CONFIG_NUM}.sum.new
+    sha256sum Dockerfile auth.txt configs/sockd.conf scripts/entrypoint.sh "$CONFIG_FILE" 2>/dev/null > .llustr_checksums/${VPN_CONFIG_NUM}.sum.new
 }
 # Function to compare checksums
 checksums_match() {
@@ -109,7 +109,12 @@ start_vpn_tunnel() {
     # Skip build unless forced or checksums don't match
     if [ "$FORCE_BUILD" = "true" ] || ! checksums_match $VPN_CONFIG_NUM; then
         echo "Building tunnel [$VPN_CONFIG_NUM]"
-        docker compose build 
+        if [ "$FORCE_BUILD" = "true" ]; then
+            echo "Force build flag detected, ignoring cache"
+            docker compose build --no-cache
+        else
+            docker compose build
+        fi
         # Save new checksums
         mv .llustr_checksums/${VPN_CONFIG_NUM}.sum.new .llustr_checksums/${VPN_CONFIG_NUM}.sum
     else
@@ -192,7 +197,7 @@ if [[ "$VPN_CONFIG" =~ ^([0-9]+)-([0-9]+)$ ]]; then
     done
     echo "Successfully started: $SUCCESS_COUNT tunnels"
     echo "Failed to start: $FAIL_COUNT tunnels"
-    echo "Run './llustr-list.sh' to see all active tunnels"
+    echo "Run './status.sh' to see all active tunnels"
     exit 0
 else
     # Single config number

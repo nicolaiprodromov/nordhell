@@ -6,11 +6,11 @@ A Docker-based proxy system that uses NordVPN configurations for maintaining mul
 
 - `Dockerfile` - Container configuration for the VPN proxy
 - `docker-compose.yml` - Multi-container setup
-- `llustr.sh` - Script to start VPN tunnels with specific configs
-- `llustr-list.sh` - Script to list all active VPN tunnels
-- `llustr-stop.sh` - Script to stop specific or all VPN tunnels
+- `start.sh` - Script to start VPN tunnels with specific configs
+- `status.sh` - Script to list all active VPN tunnels
+- `stop.sh` - Script to stop specific or all VPN tunnels
 - `scripts/` - Additional shell scripts for system operation
-  - `start.sh` - Container startup script
+  - `entrypoint.sh` - Container startup script
 - `configs/` - Configuration files
   - `sockd.conf` - Dante SOCKS proxy configuration
 - `utils/` - Utility scripts
@@ -30,27 +30,27 @@ A Docker-based proxy system that uses NordVPN configurations for maintaining mul
 
 Start a VPN tunnel using a specific configuration:
 ```bash
-./llustr.sh 29  # Start a tunnel with config #29 (numbered by filename prefix)
+./start.sh 29  # Start a tunnel with config #29 (numbered by filename prefix)
 ```
 
 Start multiple VPN tunnels using a range:
 ```bash
-./llustr.sh 0-4  # Start tunnels for configs 0, 1, 2, 3, and 4
+./start.sh 0-4  # Start tunnels for configs 0, 1, 2, 3, and 4
 ```
 
 Force rebuild of a VPN tunnel image:
 ```bash
-./llustr.sh --build 29  # Start a tunnel with config #29 and force a rebuild
+./start.sh --build 29  # Start a tunnel with config #29 and force a rebuild
 ```
 
 Update VPN configuration files before starting a tunnel:
 ```bash
-./llustr.sh --update-configs 29  # Download fresh NordVPN configs, then start tunnel #29
+./start.sh --update-configs 29  # Download fresh NordVPN configs, then start tunnel #29
 ```
 
 Options can be combined:
 ```bash
-./llustr.sh --update-configs --build 0-4  # Update configs, force rebuild, and start tunnels 0-4
+./start.sh --update-configs --build 0-4  # Update configs, force rebuild, and start tunnels 0-4
 ```
 
 **Note:** If no VPN configuration files are found in the `vpn-configs` directory, the script will automatically download them even if the `--update-configs` flag is not provided.
@@ -61,17 +61,17 @@ By default, tunnels will only be rebuilt when necessary (when configuration file
 
 List all active VPN tunnels:
 ```bash
-./llustr-list.sh
+./status.sh
 ```
 
 Stop a specific VPN tunnel:
 ```bash
-./llustr-stop.sh 29  # Stop the tunnel using config #29
+./stop.sh 29  # Stop the tunnel using config #29
 ```
 
 Stop all VPN tunnels:
 ```bash
-./llustr-stop.sh all
+./stop.sh all
 ```
 
 ### Using the SOCKS5 Proxy

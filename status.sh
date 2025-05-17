@@ -1,5 +1,5 @@
 #!/bin/bash
-# llustr-list.sh - List all active VPN tunnels
+# status.sh - List all active VPN tunnels
 
 echo "-------------------------------------"
 echo "LLUSTR TNNLs:"

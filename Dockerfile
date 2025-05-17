@@ -41,11 +41,11 @@ RUN echo "auth-user-pass /etc/openvpn/auth.txt" >> /etc/openvpn/config/nordvpn.o
 COPY configs/sockd.conf /etc/dante/sockd.conf
 
 # Copy the startup script
-COPY scripts/start.sh /start.sh
-RUN chmod +x /start.sh
+COPY scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Expose the SOCKS5 port
 EXPOSE 1080
 
 # Set the entrypoint
-ENTRYPOINT ["/start.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

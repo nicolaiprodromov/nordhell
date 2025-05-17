@@ -1,12 +1,12 @@
 #!/bin/bash
-# llustr-stop.sh - Stop a specific VPN tunnel or all tunnels
+# stop.sh - Stop a specific VPN tunnel or all tunnels
 
 # Check if an argument was provided
 if [ -z "$1" ]; then
-    echo "Usage: ./llustr-stop.sh <ID|all>"
+    echo "Usage: ./stop.sh <ID|all>"
     echo "Examples:"
-    echo "  ./llustr-stop.sh 0     # Stop tunnel [0]"
-    echo "  ./llustr-stop.sh all   # Stop all tunnels"
+    echo "  ./stop.sh 0     # Stop tunnel [0]"
+    echo "  ./stop.sh all   # Stop all tunnels"
     echo
     echo "Currently running tunnels:"
     
