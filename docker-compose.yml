@@ -8,6 +8,17 @@ services:
     container_name: llustr-proxy-tunnel-${VPN_CONFIG_NUM:-0}
     networks:
       - llustr-proxy-network
+    env_file:
+      - .env
+    environment:
+      - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
+    # Use tmpfs (in-memory filesystem) for sensitive data
+    tmpfs:
+      - /run/vpn-credentials:size=1M,mode=700,noexec,nosuid
+    # Add security options to restrict container capabilities
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:unconfined  # Required for VPN functionality
     cap_add:
       - NET_ADMIN  # Required for VPN
       - SYS_MODULE

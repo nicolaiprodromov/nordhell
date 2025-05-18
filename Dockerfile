@@ -34,8 +34,8 @@ RUN CONFIG_NUM=$(printf "%03d" $VPN_CONFIG_NUM) && \
     cp $CONFIG_FILE /etc/openvpn/config/nordvpn.ovpn && \
     rm -rf /tmp/vpn-configs/
 
-COPY auth.txt /etc/openvpn/auth.txt
-RUN echo "auth-user-pass /etc/openvpn/auth.txt" >> /etc/openvpn/config/nordvpn.ovpn
+# Will create auth file at runtime from environment variables in secure tmpfs
+RUN echo "auth-user-pass /run/vpn-credentials/auth.txt" >> /etc/openvpn/config/nordvpn.ovpn
 
 # Copy the sockd.conf file
 COPY configs/sockd.conf /etc/dante/sockd.conf

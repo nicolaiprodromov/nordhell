@@ -45,8 +45,8 @@ calculate_checksums() {
     local CONFIG_FILE=$(ls -1 vpn-configs/${FORMATTED_NUM}-*.tcp.ovpn 2>/dev/null)
     # Create checksums directory if it doesn't exist
     mkdir -p .llustr_checksums
-    # Calculate checksums for relevant files
-    sha256sum Dockerfile auth.txt configs/sockd.conf scripts/entrypoint.sh "$CONFIG_FILE" 2>/dev/null > .llustr_checksums/${VPN_CONFIG_NUM}.sum.new
+    # Calculate checksums for relevant files (excluding auth.txt which is now in .env)
+    sha256sum Dockerfile configs/sockd.conf scripts/entrypoint.sh .env "$CONFIG_FILE" 2>/dev/null > .llustr_checksums/${VPN_CONFIG_NUM}.sum.new
 }
 # Function to compare checksums
 checksums_match() {

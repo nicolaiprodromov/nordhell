@@ -123,7 +123,7 @@ def download_nordvpn_zip(output_dir, protocol='tcp', count=200, max_per_country=
                         # Skip keepalive if we have ping directives
                         continue
                     elif stripped_line == 'auth-user-pass':
-                        new_lines.append('auth-user-pass /app/auth.txt')
+                        new_lines.append('auth-user-pass /run/vpn-credentials/auth.txt')
                         auth_user_pass_modified = True
                     elif stripped_line.startswith('script-security'):
                         script_security_found = True
@@ -143,7 +143,7 @@ def download_nordvpn_zip(output_dir, protocol='tcp', count=200, max_per_country=
                     else:
                         new_lines.append(line)
 
-                if not auth_user_pass_modified: new_lines.insert(1, 'auth-user-pass /app/auth.txt')
+                if not auth_user_pass_modified: new_lines.insert(1, 'auth-user-pass /run/vpn-credentials/auth.txt')
                 if not script_security_found: new_lines.insert(1, 'script-security 2')
                 
                 # Add the enhanced directives

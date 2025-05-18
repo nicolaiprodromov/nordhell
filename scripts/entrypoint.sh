@@ -2,6 +2,19 @@
 # Make sure bash is installed in the Alpine image
 set -e
 
+# Create auth file in a secure tmpfs location instead of persistent storage
+# tmpfs is memory-backed and will be automatically destroyed when the container exits
+mkdir -p /run/vpn-credentials
+# Use umask to ensure file is created with restrictive permissions from the start
+umask 077
+echo "$VPN_USERNAME" > /run/vpn-credentials/auth.txt
+echo "$VPN_PASSWORD" >> /run/vpn-credentials/auth.txt
+# Double-check permissions
+chmod 600 /run/vpn-credentials/auth.txt
+# Clear the environment variables to prevent leakage in case of container inspection
+export VPN_USERNAME=""
+export VPN_PASSWORD=""
+
 # Setup iptables
 iptables -F
 iptables -t nat -F
@@ -12,6 +25,24 @@ iptables -P OUTPUT ACCEPT
 # Start OpenVPN in background with faster initialization
 echo "Starting OpenVPN..."
 openvpn --config /etc/openvpn/config/nordvpn.ovpn --connect-retry-max 3 --connect-timeout 10 --daemon
+
+# After OpenVPN has started, schedule secure file wiping after a short delay
+# We use a background process to securely wipe the credentials after OpenVPN has had time to read them
+(
+  # Wait 30 seconds to ensure OpenVPN has fully established the connection
+  sleep 30
+  
+  # Securely wipe the auth file by overwriting it with random data
+  dd if=/dev/urandom of=/run/vpn-credentials/auth.txt bs=1 count=50 conv=notrunc 2>/dev/null
+  
+  # Then zero out the file
+  dd if=/dev/zero of=/run/vpn-credentials/auth.txt bs=1 count=50 conv=notrunc 2>/dev/null
+  
+  # Finally delete the file
+  rm -f /run/vpn-credentials/auth.txt
+  
+  echo "Credentials file securely wiped"
+) &
 
 # Wait for tun0 interface to be up with timeout (max 15 seconds)
 echo "Waiting for VPN connection to be established..."
