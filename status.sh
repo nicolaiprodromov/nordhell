@@ -28,8 +28,11 @@ TABLE_DATA=$(mktemp)
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Add header to the table data
-echo -e "TUNNEL\tPORT\tSTATUS\tTIME ALIVE\tSERVER\tLOCATION" > "$TABLE_DATA"
-echo -e "------\t----\t------\t----------\t------\t--------" >> "$TABLE_DATA"
+echo -e "TUNNEL\tPORT\tSTATUS\tTIME ALIVE\tSERVER\tLOCATION\tMEMORY" > "$TABLE_DATA"
+echo -e "------\t----\t------\t----------\t------\t--------\t------" >> "$TABLE_DATA"
+
+# Initialize total memory usage counter
+TOTAL_MEMORY_MB=0
 
 # Create country code mapping function
 get_country_name() {
@@ -122,11 +125,11 @@ get_country_name() {
     esac
 }
 
-# Get all running containers with the llustr prefix and store in an array
-mapfile -t CONTAINER_ARRAY < <(docker ps --filter "name=llustr-proxy-tunnel-" --format "{{.Names}}" | sort -V)
+# Get all running containers with the llustr prefix and store in an array in ascending order
+mapfile -t CONTAINER_ARRAY < <(docker ps --filter "name=llustr-proxy-tunnel-" --format "{{.Names}}" | grep -o 'llustr-proxy-tunnel-[0-9]\+' | sort -t'-' -k4 -n)
 
-# Loop through each container in reverse order
-for ((i=${#CONTAINER_ARRAY[@]}-1; i>=0; i--)); do
+# Loop through each container in ascending order
+for ((i=0; i<${#CONTAINER_ARRAY[@]}; i++)); do
     CONTAINER="${CONTAINER_ARRAY[i]}"
     # Get the port
     PORT=$(docker port $CONTAINER 1080/tcp | cut -d ':' -f 2)
@@ -204,8 +207,41 @@ for ((i=${#CONTAINER_ARRAY[@]}-1; i>=0; i--)); do
         TUNNEL_NAME=$CONTAINER
     fi
     
+    # Get memory usage in MB for the container more efficiently
+    # Uses a single docker inspect command to get memory stats (much faster than docker stats)
+    # Using docker inspect to get memory usage
+    MEMORY_BYTES=$(docker inspect --format='{{.HostConfig.Memory}}' $CONTAINER)
+    
+    # If container doesn't have a memory limit, use memory usage from stats (slower but accurate)
+    if [[ "$MEMORY_BYTES" == "0" ]]; then
+        # Get memory stats efficiently - collect all stats at once to avoid multiple docker calls
+        STATS=$(docker stats --no-stream --format "{{.MemUsage}}" $CONTAINER)
+        MEMORY_USAGE=$(echo "$STATS" | awk '{print $1}')
+        MEMORY_VALUE=$(echo $MEMORY_USAGE | sed 's/[^0-9.]//g')
+        MEMORY_UNIT=$(echo $MEMORY_USAGE | sed 's/[0-9.]//g')
+        
+        # Convert to MB if necessary
+        if [[ "$MEMORY_UNIT" == "GiB" ]]; then
+            MEMORY_MB=$(LC_NUMERIC=C echo "$MEMORY_VALUE * 1024" | LC_NUMERIC=C bc)
+        elif [[ "$MEMORY_UNIT" == "KiB" ]]; then
+            MEMORY_MB=$(LC_NUMERIC=C echo "scale=2; $MEMORY_VALUE / 1024" | LC_NUMERIC=C bc)
+        else
+            # Assume it's already in MiB
+            MEMORY_MB=$MEMORY_VALUE
+        fi
+    else
+        # Convert bytes to MB
+        MEMORY_MB=$(LC_NUMERIC=C echo "scale=2; $MEMORY_BYTES / 1024 / 1024" | LC_NUMERIC=C bc)
+    fi
+    
+    # Add to total - using LC_NUMERIC=C for consistent decimal handling
+    TOTAL_MEMORY_MB=$(LC_NUMERIC=C echo "$TOTAL_MEMORY_MB + $MEMORY_MB" | LC_NUMERIC=C bc)
+    
+    # Format memory for display - ensure consistent formatting
+    MEMORY_DISPLAY="$(LC_NUMERIC=C echo "$MEMORY_MB" | LC_NUMERIC=C awk '{printf "%.2f", $1}')MB"
+    
     # Add the row to our table data file (tab-separated)
-    echo -e "$TUNNEL_NAME\t$PORT\t$STATUS\t$TIME_ALIVE\t$VPN_SERVER\t$LOCATION" >> "$TABLE_DATA"
+    echo -e "$TUNNEL_NAME\t$PORT\t$STATUS\t$TIME_ALIVE\t$VPN_SERVER\t$LOCATION\t$MEMORY_DISPLAY" >> "$TABLE_DATA"
 done
 
 # Format and display the table using column command
@@ -213,5 +249,8 @@ column -t -s $'\t' "$TABLE_DATA"
 
 # Remove temporary file
 rm "$TABLE_DATA"
+
+# Display total memory usage - ensuring locale-independent formatting
+echo -e "\nTotal memory usage: $(echo "$TOTAL_MEMORY_MB" | LC_NUMERIC=C awk '{printf "%.2f", $1}') MB"
 
 echo "-------------------------------------"
