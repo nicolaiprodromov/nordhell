@@ -41,9 +41,9 @@ auth.txt
 vpn-configs/
 vpn-configs/*
 
-# GitHub instructions
-.github/instructions/
-.github/instructions/*.md
+# Identities
+identities/
+identities/*.json
 
 # LLUSTR checksums
 .llustr_checksums/

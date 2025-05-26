@@ -3,22 +3,62 @@
     {
       "id": 1,
       "username": "mona.lease.me",
-      "email": "mona.lease.me@bad.video"
+      "full_name": "Mona Lisa",
+      "email": "mona.lease.me@bad.video",
+      "birthday": "1990-12-01",
+      "accounts" : [
+        {
+          "full_name": "Mona Lisa",
+          "username": "mona.lease.me",
+          "password": "8&Bj,g4,U.2Ta5",
+          "banned": true
+        }
+      ]
     },
     {
       "id": 2,
-      "username": "vangogh_lover88",
-      "email": "vangogh_lover88@bad.video"
+      "username": "vangogus_lover88",
+      "full_name": "Floris McKenny",
+      "email": "vangogus_lover88@bad.video",
+      "birthday": "2000-05-04",
+      "accounts": [
+        {
+          "full_name": "Floris McKenny",
+          "username": "vangogus_lover88",
+          "password": "4!Xc9@2#Qw8Z",
+          "banned": false
+        }
+      ]
     },
     {
       "id": 3,
-      "username": "Banksy4Real",
-      "email": "Banksy4Real@bad.video"
+      "username": "banksy_robber",
+      "full_name": "Ionel Stefanescu Marian",
+      "email": "banksy_robber@bad.video",
+      "birthday": "1985-07-15",
+      "accounts": [
+        {
+          "full_name": "Ionel Stefanescu Marian",
+          "username": "banksy_robber",
+          "password": "3#Qw8Z4!Xc9@2",
+          "banned": false
+        }
+      ]
     },
     {
       "id": 4,
-      "username": "starry_knight",
-      "email": "starry_knight@bad.video"
+      "username": "starry_knight_2nite",
+      "full_name": "Vincent Oligophren",
+      "email": "starry_knight@bad.video",
+      "birthday": "1997-03-30",
+      "accounts": [
+        {
+          "full_name": "Vincent Oligophren",
+          "username": "starry_knight_2nite",
+          "password": "5!Xc9@2#Qw8Z4",
+          "banned": false
+        }
+      ]
     },
     {
       "id": 5,
