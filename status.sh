@@ -35,8 +35,8 @@ trap 'rm -f "$TABLE_DATA"' EXIT
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Add header to the table data
-echo -e "TUNNEL\tPORT\tSTATUS\tTIME ALIVE\tSERVER\tLOCATION\tMEMORY" > "$TABLE_DATA"
-echo -e "------\t----\t------\t----------\t------\t--------\t------" >> "$TABLE_DATA"
+echo -e "TUNNEL\tPORT\tSTATUS\tTIME ALIVE\tSERVER\tENTRYPOINT\tEXITPOINT IP\tEXITPOINT\tMEMORY" > "$TABLE_DATA"
+echo -e "------\t----\t------\t----------\t------\t----------\t------------\t---------\t------" >> "$TABLE_DATA"
 
 # Initial memory total
 TOTAL_MEMORY_MB=$(LC_NUMERIC=C printf "%.2f" 0)
@@ -104,10 +104,77 @@ get_country_name() {
         is) echo "Iceland" ;;
         it) echo "Italy" ;;
         jp) echo "Japan" ;;
+        je) echo "Jersey" ;;
+        jm) echo "Jamaica" ;;
+        jo) echo "Jordan" ;;
+        jp) echo "Japan" ;;
+        ke) echo "Kenya" ;;
+        kh) echo "Cambodia" ;;
+        km) echo "Comoros" ;;
         kr) echo "South Korea" ;;
+        kw) echo "Kuwait" ;;
+        ky) echo "Cayman Islands" ;;
+        kz) echo "Kazakhstan" ;;
+        la) echo "Laos" ;;
+        lb) echo "Lebanon" ;;
+        li) echo "Liechtenstein" ;;
+        lk) echo "Sri Lanka" ;;
+        lt) echo "Lithuania" ;;
         lu) echo "Luxembourg" ;;
         lv) echo "Latvia" ;;
+        ly) echo "Libya" ;;
+        ma) echo "Morocco" ;;
+        mc) echo "Monaco" ;;
         md) echo "Moldova" ;;
+        me) echo "Montenegro" ;;
+        mk) echo "North Macedonia" ;;
+        mm) echo "Myanmar" ;;
+        mn) echo "Mongolia" ;;
+        mr) echo "Mauritania" ;;
+        mt) echo "Malta" ;;
+        mx) echo "Mexico" ;;
+        my) echo "Malaysia" ;;
+        mz) echo "Mozambique" ;;
+        ng) echo "Nigeria" ;;
+        nl) echo "Netherlands" ;;
+        no) echo "Norway" ;;
+        np) echo "Nepal" ;;
+        nz) echo "New Zealand" ;;
+        pa) echo "Panama" ;;
+        pe) echo "Peru" ;;
+        pg) echo "Papua New Guinea" ;;
+        ph) echo "Philippines" ;;
+        pk) echo "Pakistan" ;;
+        pl) echo "Poland" ;;
+        pr) echo "Puerto Rico" ;;
+        pt) echo "Portugal" ;;
+        py) echo "Paraguay" ;;
+        qa) echo "Qatar" ;;
+        ro) echo "Romania" ;;
+        rs) echo "Serbia" ;;
+        rw) echo "Rwanda" ;;
+        se) echo "Sweden" ;;
+        sg) echo "Singapore" ;;
+        si) echo "Slovenia" ;;
+        sk) echo "Slovakia" ;;
+        sn) echo "Senegal" ;;
+        so) echo "Somalia" ;;
+        sv) echo "El Salvador" ;;
+        td) echo "Chad" ;;
+        tg) echo "Togo" ;;
+        th) echo "Thailand" ;;
+        tn) echo "Tunisia" ;;
+        tr) echo "Turkey" ;;
+        tt) echo "Trinidad and Tobago" ;;
+        tw) echo "Taiwan" ;;
+        ua) echo "Ukraine" ;;
+        uk) echo "United Kingdom" ;;
+        us) echo "United States" ;;
+        uy) echo "Uruguay" ;;
+        uz) echo "Uzbekistan" ;;
+        ve) echo "Venezuela" ;;
+        vn) echo "Vietnam" ;;
+        za) echo "South Africa" ;;
         *) echo "Unknown" ;;
     esac
 }
@@ -197,8 +264,8 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
         fi
     fi
     
-    # Determine the country based on VPN config file
-    LOCATION="Unknown" 
+    # Determine the entrypoint country based on VPN config file
+    ENTRYPOINT_LOCATION="Unknown" 
     if [[ -n "$TUNNEL_ID" ]]; then
         CONFIG_NUM_PADDED=$(printf "%03d" "$TUNNEL_ID")
         CONFIG_FILE_PATH=$(find "${SCRIPT_DIR}/vpn-configs/" -maxdepth 1 -type f -name "${CONFIG_NUM_PADDED}-*.tcp.ovpn" -print -quit 2>/dev/null)
@@ -207,8 +274,21 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
             CONFIG_FILENAME=$(basename "$CONFIG_FILE_PATH")
             if [[ "$CONFIG_FILENAME" =~ ^[0-9]{3}-([a-z]{2})[0-9a-zA-Z]*\.nordvpn\.com ]]; then
                 COUNTRY_CODE="${BASH_REMATCH[1]}"
-                LOCATION=$(get_country_name "$COUNTRY_CODE")
+                ENTRYPOINT_LOCATION=$(get_country_name "$COUNTRY_CODE")
             fi
+        fi
+    fi
+
+    # Get exit point IP and country using the SOCKS proxy
+    EXITPOINT_IP="Unknown"
+    EXITPOINT_COUNTRY="Unknown"
+    if [[ "$PORT" != "N/A" && "$STATUS" == "$CHECK_MARK" ]]; then
+        # Use timeout and timeout the curl request to avoid hanging
+        EXITPOINT_INFO=$(timeout 10 curl -s --socks5 127.0.0.1:$PORT https://ipinfo.io/json 2>/dev/null || echo "")
+        if [[ -n "$EXITPOINT_INFO" ]]; then
+            # Parse JSON response to extract IP and country
+            EXITPOINT_IP=$(echo "$EXITPOINT_INFO" | grep -o '"ip"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"ip"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "Unknown")
+            EXITPOINT_COUNTRY=$(echo "$EXITPOINT_INFO" | grep -o '"country"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"country"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "Unknown")
         fi
     fi
     
@@ -283,7 +363,7 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
     MEMORY_DISPLAY="${MEMORY_MB}MB"
     
     # Add row to table data
-    echo -e "$TUNNEL_NAME\t$PORT\t$STATUS\t$TIME_ALIVE\t$VPN_SERVER\t$LOCATION\t$MEMORY_DISPLAY" >> "$TABLE_DATA"
+    echo -e "$TUNNEL_NAME\t$PORT\t$STATUS\t$TIME_ALIVE\t$VPN_SERVER\t$ENTRYPOINT_LOCATION\t$EXITPOINT_IP\t$EXITPOINT_COUNTRY\t$MEMORY_DISPLAY" >> "$TABLE_DATA"
 done
 
 # Display the table
