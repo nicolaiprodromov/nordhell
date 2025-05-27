@@ -35,7 +35,7 @@ trap 'rm -f "$TABLE_DATA"' EXIT
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # Add header to the table data
-echo -e "TUNNEL\tPORT\tSTATUS\tTIME ALIVE\tSERVER\tENTRYPOINT\tEXITPOINT IP\tEXITPOINT\tMEMORY" > "$TABLE_DATA"
+echo -e "TUNNEL\tPORT\tSTATUS\tTIME ALIVE\tENTRYPOINT IP\tENTRYPOINT\tEXITPOINT IP\tEXITPOINT\tMEMORY" > "$TABLE_DATA"
 echo -e "------\t----\t------\t----------\t------\t----------\t------------\t---------\t------" >> "$TABLE_DATA"
 
 # Initial memory total
