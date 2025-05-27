@@ -1,5 +1,6 @@
 import os
 import re
+import asyncio
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 
@@ -12,6 +13,7 @@ from utils import (
 class TunnelService:
     def __init__(self, root_dir: str):
         self.root_dir = root_dir
+        self._entrypoint_cache = {}  # Cache for entrypoint info
     
     async def get_tunnel_health(self, tunnel_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """Get basic health status of VPN tunnels (lightweight, fast)"""
@@ -67,7 +69,7 @@ class TunnelService:
         return tunnels
     
     async def get_tunnel_status(self, tunnel_id: Optional[int] = None) -> List[Dict[str, Any]]:
-        """Get status of VPN tunnels"""
+        """Get status of VPN tunnels - optimized version"""
         
         # Get container data using docker
         cmd = ["docker", "ps", "--filter", "name=llustr-proxy-tunnel-"]
@@ -79,9 +81,13 @@ class TunnelService:
         if returncode != 0:
             raise HTTPException(status_code=500, detail=f"Docker command failed: {stderr}")
         
-        tunnels = []
-        total_memory_mb = 0.0
+        if not stdout.strip():
+            return []
         
+        container_info = []
+        container_ids = []
+        
+        # Parse container basic info
         for line in stdout.strip().split('\n'):
             if not line:
                 continue
@@ -97,7 +103,6 @@ class TunnelService:
             if not match:
                 continue
             tunnel_id_str = match.group(1)
-            tunnel_name = f"LLUSTR[{tunnel_id_str}]"
             
             # Extract port
             port = "N/A"
@@ -108,39 +113,115 @@ class TunnelService:
             # Determine status
             status = "up" if "Up" in status_text and "unhealthy" not in status_text else "down"
             
-            # Get container creation time
-            cmd_inspect = ["docker", "inspect", "-f", "{{.Created}}", container_id]
-            _, created_time, _ = await run_command(cmd_inspect, self.root_dir)
+            container_info.append({
+                "container_id": container_id,
+                "tunnel_id": int(tunnel_id_str),
+                "tunnel_id_str": tunnel_id_str,
+                "port": port,
+                "status": status
+            })
+            container_ids.append(container_id)
+        
+        if not container_info:
+            return []
+        
+        # Batch Docker operations for better performance
+        batch_tasks = []
+        
+        # 1. Get creation times for all containers in batch
+        if container_ids:
+            cmd_inspect = ["docker", "inspect", "-f", "{{.Created}}", *container_ids]
+            batch_tasks.append(run_command(cmd_inspect, self.root_dir))
+        
+        # 2. Get memory stats for all containers in batch
+        if container_ids:
+            cmd_stats = ["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", *container_ids]
+            batch_tasks.append(run_command(cmd_stats, self.root_dir))
+        
+        # 3. Get logs for all containers (we'll do this in parallel but separately due to potentially large output)
+        log_tasks = [run_command(["docker", "logs", cid], self.root_dir) for cid in container_ids]
+        
+        # Execute batch operations
+        batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+        creation_times = []
+        memory_stats = []
+        
+        if len(batch_results) >= 1 and not isinstance(batch_results[0], Exception):
+            _, created_output, _ = batch_results[0]
+            creation_times = created_output.strip().split('\n') if created_output.strip() else []
+        
+        if len(batch_results) >= 2 and not isinstance(batch_results[1], Exception):
+            _, mem_output, _ = batch_results[1]
+            memory_stats = mem_output.strip().split('\n') if mem_output.strip() else []
+        
+        # Get logs in parallel
+        log_results = await asyncio.gather(*log_tasks, return_exceptions=True)
+        
+        # Get entrypoint info (cached)
+        entrypoint_tasks = []
+        for info in container_info:
+            entrypoint_tasks.append(self._get_entrypoint_info_cached(info["tunnel_id_str"]))
+        
+        if entrypoint_tasks:
+            entrypoint_results = await asyncio.gather(*entrypoint_tasks, return_exceptions=True)
+        else:
+            entrypoint_results = []
+        
+        # Get external IP/country info in parallel for running tunnels
+        external_ip_tasks = []
+        external_ip_indices = []
+        
+        for i, info in enumerate(container_info):
+            if info["status"] == "up" and info["port"] != "N/A":
+                external_ip_tasks.append(get_external_ip_via_proxy(info["port"]))
+                external_ip_indices.append(i)
+        
+        if external_ip_tasks:
+            external_ip_results = await asyncio.gather(*external_ip_tasks, return_exceptions=True)
+        else:
+            external_ip_results = []
+        
+        # Build final results
+        tunnels = []
+        
+        for i, info in enumerate(container_info):
+            tunnel_name = f"LLUSTR[{info['tunnel_id_str']}]"
             
-            # Calculate uptime
-            time_alive = parse_uptime(created_time.strip()) if created_time.strip() else "Unknown"
+            # Get creation time
+            time_alive = "Unknown"
+            if i < len(creation_times) and creation_times[i]:
+                time_alive = parse_uptime(creation_times[i]) 
             
             # Get VPN server info from logs
-            cmd_logs = ["docker", "logs", container_id]
-            _, logs, _ = await run_command(cmd_logs, self.root_dir)
-            vpn_server = extract_vpn_server_from_logs(logs)
+            vpn_server = "Unknown"
+            if i < len(log_results) and not isinstance(log_results[i], Exception):
+                _, logs, _ = log_results[i]
+                vpn_server = extract_vpn_server_from_logs(logs)
             
-            # Determine location and IP from config file
-            entrypoint_location, entrypoint_ip = get_entrypoint_info(tunnel_id_str, self.root_dir)
+            # Get entrypoint info
+            entrypoint_location = "Unknown"
+            entrypoint_ip = "Unknown"
+            if i < len(entrypoint_results) and not isinstance(entrypoint_results[i], Exception):
+                entrypoint_location, entrypoint_ip = entrypoint_results[i]
             
-            # Get exit point IP and country using the SOCKS proxy
+            # Get external IP info
             exitpoint_ip = "Unknown"
             exitpoint_country = "Unknown"
-            if port != "N/A" and status == "up":
-                exitpoint_ip, exitpoint_country = await get_external_ip_via_proxy(port)
+            external_ip_idx = next((j for j, idx in enumerate(external_ip_indices) if idx == i), None)
+            if external_ip_idx is not None and external_ip_idx < len(external_ip_results):
+                if not isinstance(external_ip_results[external_ip_idx], Exception):
+                    exitpoint_ip, exitpoint_country = external_ip_results[external_ip_idx]
             
             # Get memory usage
-            cmd_stats = ["docker", "stats", "--no-stream", "--format", "{{.MemUsage}}", container_id]
-            _, mem_stats, _ = await run_command(cmd_stats, self.root_dir)
-            memory_mb = parse_memory_usage(mem_stats.strip()) if mem_stats.strip() else 0.0
-            
-            total_memory_mb += memory_mb
+            memory_mb = 0.0
+            if i < len(memory_stats) and memory_stats[i]:
+                memory_mb = parse_memory_usage(memory_stats[i])
             
             tunnels.append({
-                "tunnel_id": int(tunnel_id_str),
+                "tunnel_id": info["tunnel_id"],
                 "tunnel": tunnel_name,
-                "port": port,
-                "status": status,
+                "port": info["port"],
+                "status": info["status"],
                 "time_alive": time_alive,
                 "entrypoint_ip": entrypoint_ip,
                 "entrypoint": entrypoint_location,
@@ -153,6 +234,14 @@ class TunnelService:
         tunnels.sort(key=lambda x: x["tunnel_id"])
         
         return tunnels
+    
+    async def _get_entrypoint_info_cached(self, tunnel_id_str: str) -> tuple[str, str]:
+        """Get entrypoint info with caching"""
+        if tunnel_id_str not in self._entrypoint_cache:
+            result = get_entrypoint_info(tunnel_id_str, self.root_dir)
+            self._entrypoint_cache[tunnel_id_str] = result
+            return result
+        return self._entrypoint_cache[tunnel_id_str]
 
     async def start_tunnel(self, tunnel_id: str, build: bool = False, update_configs: bool = False) -> tuple[int, str, str]:
         """Start VPN tunnel(s)"""

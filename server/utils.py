@@ -4,10 +4,12 @@ import json
 import glob
 import asyncio
 import aiohttp
+import time
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
 
 
 class PrettyJSONResponse(JSONResponse):
@@ -78,9 +80,9 @@ async def get_external_ip_via_proxy(port: str) -> tuple[str, str]:
     try:
         import aiohttp_socks
         
-        # Create SOCKS proxy connector
+        # Create SOCKS proxy connector with shorter timeout
         connector = aiohttp_socks.ProxyConnector.from_url(f'socks5://127.0.0.1:{port}')
-        timeout = aiohttp.ClientTimeout(total=10)
+        timeout = aiohttp.ClientTimeout(total=5)  # Reduced from 10 to 5 seconds
         
         async with aiohttp.ClientSession(
             connector=connector, 
@@ -91,17 +93,21 @@ async def get_external_ip_via_proxy(port: str) -> tuple[str, str]:
                 data = await response.json()
                 ip = data.get("origin", "Unknown")
                 
-            # Get country info
-            async with session.get(f"http://ip-api.com/json/{ip}") as response:
-                geo_data = await response.json()
-                country = geo_data.get("country", "Unknown")
+            # Get country info - use a faster service if available
+            try:
+                async with session.get(f"http://ip-api.com/json/{ip}?fields=country") as response:
+                    geo_data = await response.json()
+                    country = geo_data.get("country", "Unknown")
+            except Exception:
+                # Fallback to basic country extraction from IP if possible
+                country = "Unknown"
                 
         return ip, country
     except Exception as e:
-        # Fall back to simpler approach if aiohttp_socks not available
+        # Fall back to simpler approach with shorter timeout
         try:
-            # Use subprocess to call curl with SOCKS proxy
-            cmd = ["curl", "--socks5", f"127.0.0.1:{port}", "-s", "http://httpbin.org/ip"]
+            # Use subprocess to call curl with SOCKS proxy and shorter timeout
+            cmd = ["timeout", "3", "curl", "--socks5", f"127.0.0.1:{port}", "-s", "http://httpbin.org/ip"]
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
@@ -114,8 +120,8 @@ async def get_external_ip_via_proxy(port: str) -> tuple[str, str]:
                 data = json.loads(stdout.decode())
                 ip = data.get("origin", "Unknown")
                 
-                # Get country using ip-api
-                cmd_geo = ["curl", "--socks5", f"127.0.0.1:{port}", "-s", f"http://ip-api.com/json/{ip}"]
+                # Get country using ip-api with shorter timeout
+                cmd_geo = ["timeout", "2", "curl", "--socks5", f"127.0.0.1:{port}", "-s", f"http://ip-api.com/json/{ip}?fields=country"]
                 process_geo = await asyncio.create_subprocess_exec(
                     *cmd_geo,
                     stdout=asyncio.subprocess.PIPE,
@@ -232,3 +238,15 @@ def get_entrypoint_info(tunnel_id_str: str, root_dir: str) -> tuple[str, str]:
             return country_name, "Unknown"
     
     return "Unknown", "Unknown"
+
+
+@asynccontextmanager
+async def timer(operation_name: str = "Operation"):
+    """Context manager to time async operations"""
+    start_time = time.time()
+    try:
+        yield
+    finally:
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"{operation_name} took {duration:.2f} seconds")

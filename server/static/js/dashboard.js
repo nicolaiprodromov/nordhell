@@ -61,9 +61,11 @@ async function updateHealthStatus() {
                     const tunnelId = parseInt(tunnelIdMatch[1]);
                     const healthData = healthMap[tunnelId];
                     
+                    // Update the status cell (3rd column) regardless of whether tunnel exists in health data
+                    const statusCell = cells[2];
+                    
                     if (healthData) {
-                        // Update only the status cell (3rd column)
-                        const statusCell = cells[2];
+                        // Tunnel exists in health response - use its actual status
                         const statusClass = healthData.is_healthy ? 'text-green-400' : 'text-red-400';
                         const statusIcon = healthData.is_healthy ? 'circle-check' : 'circle-x';
                         const statusText = healthData.is_healthy ? 'UP' : 'DOWN';
@@ -72,6 +74,14 @@ async function updateHealthStatus() {
                             <span class="flex items-center space-x-2 ${statusClass}">
                                 <i data-lucide="${statusIcon}" class="w-4 h-4"></i>
                                 <span class="${healthData.is_healthy ? 'pulse-slow' : ''}">${statusText}</span>
+                            </span>
+                        `;
+                    } else {
+                        // Tunnel not found in health response - mark as DOWN
+                        statusCell.innerHTML = `
+                            <span class="flex items-center space-x-2 text-red-400">
+                                <i data-lucide="circle-x" class="w-4 h-4"></i>
+                                <span>DOWN</span>
                             </span>
                         `;
                     }

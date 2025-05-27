@@ -124,6 +124,36 @@ async def get_status(tunnel_ids: Optional[List[int]] = Query(None)):
         raise HTTPException(status_code=500, detail=f"Failed to get tunnel status: {str(e)}")
 
 
+@router.get("/status/fast", response_class=PrettyJSONResponse)
+async def get_fast_status(tunnel_ids: Optional[List[int]] = Query(None)):
+    """Get fast status of VPN tunnels (basic info only, no external requests)
+    
+    This endpoint provides quick basic information without expensive operations like
+    external IP lookups, detailed memory stats, or log parsing.
+    
+    Parameters:
+    - tunnel_ids: Optional list of tunnel IDs to filter by. If not provided, returns all tunnels.
+    """
+    try:
+        if tunnel_ids:
+            # Get status for specific tunnels
+            all_tunnels = []
+            for tunnel_id in tunnel_ids:
+                tunnels = await tunnel_service.get_tunnel_health(tunnel_id)
+                all_tunnels.extend(tunnels)
+        else:
+            # Get status for all tunnels
+            all_tunnels = await tunnel_service.get_tunnel_health()
+        
+        return {
+            "tunnels": all_tunnels,
+            "count": len(all_tunnels),
+            "note": "Fast status - basic info only. Use /status for detailed information."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get tunnel status: {str(e)}")
+
+
 @router.post("/replace", response_class=PrettyJSONResponse)
 async def replace_tunnel(request: ReplaceRequest):
     """Replace one tunnel with another"""
