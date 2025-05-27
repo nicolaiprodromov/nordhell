@@ -14,9 +14,9 @@ class Config:
     VERSION: str = "1.0.0"
     
     # Paths
-    ROOT_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    TEMPLATES_DIR: str = os.path.join(os.path.dirname(__file__), "templates")
-    STATIC_DIR: str = os.path.join(os.path.dirname(__file__), "static")
+    ROOT_DIR: str = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    TEMPLATES_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "templates")
+    STATIC_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "static")
     
     # VPN Configuration
     VPN_CONFIGS_DIR: str = os.path.join(ROOT_DIR, "vpn-configs")

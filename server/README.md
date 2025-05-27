@@ -6,19 +6,33 @@ A FastAPI-based web application for managing VPN tunnels with an interactive das
 
 ```
 server/
-├── main.py              # Application entry point
-├── config.py            # Configuration settings
-├── models.py            # Pydantic data models
-├── api.py              # FastAPI route handlers
-├── services.py         # Business logic for tunnel management
-├── utils.py            # Utility functions and helpers
-├── requirements.txt    # Python dependencies
-├── start_server.sh     # Development startup script
-├── templates/
+├── main.py              # Application entry point (imports from app/)
+├── app/                 # Main application package
+│   ├── __init__.py      # Package initialization
+│   ├── main.py          # FastAPI application factory
+│   ├── api/             # API routes and endpoints
+│   │   ├── __init__.py
+│   │   └── routes.py    # FastAPI route handlers
+│   ├── core/            # Core application configuration
+│   │   ├── __init__.py
+│   │   └── config.py    # Configuration settings
+│   ├── models/          # Data models and schemas
+│   │   ├── __init__.py
+│   │   └── schemas.py   # Pydantic data models
+│   ├── services/        # Business logic layer
+│   │   ├── __init__.py
+│   │   └── tunnel_service.py  # Tunnel management logic
+│   └── utils/           # Utility functions
+│       ├── __init__.py
+│       └── helpers.py   # Helper functions and utilities
+├── requirements.txt     # Python dependencies
+├── start.sh            # Server startup script
+├── templates/          # Jinja2 templates
 │   └── dashboard.html  # HTML dashboard template
-└── static/
-    ├── css/           # CSS stylesheets (future)
-    └── js/
+└── static/            # Static web assets
+    ├── css/           # CSS stylesheets
+    └── js/            # JavaScript files
+```
         └── dashboard.js # Dashboard JavaScript
 ```
 

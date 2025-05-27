@@ -4,7 +4,7 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from fastapi import HTTPException
 
-from utils import (
+from app.utils.helpers import (
     run_command, get_external_ip_via_proxy, parse_uptime, 
     parse_memory_usage, extract_vpn_server_from_logs, get_entrypoint_info
 )

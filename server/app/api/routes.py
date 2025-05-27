@@ -4,10 +4,10 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
-from models import StartRequest, StopRequest, ReplaceRequest, HealthRequest
-from utils import PrettyJSONResponse
-from services import TunnelService
-from config import config
+from app.models.schemas import StartRequest, StopRequest, ReplaceRequest, HealthRequest
+from app.utils.helpers import PrettyJSONResponse
+from app.services.tunnel_service import TunnelService
+from app.core.config import config
 
 # Initialize tunnel service
 tunnel_service = TunnelService(config.ROOT_DIR)
@@ -35,7 +35,7 @@ async def api_root():
 @router.get("/docs")
 async def get_docs():
     """Get API documentation as markdown"""
-    docs_path = os.path.join(os.path.dirname(__file__), "README.md")
+    docs_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "README.md")
     try:
         with open(docs_path, 'r') as f:
             content = f.read()
