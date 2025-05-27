@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Union
 from pydantic import BaseModel
 
 
@@ -15,3 +15,7 @@ class StopRequest(BaseModel):
 class ReplaceRequest(BaseModel):
     stop_tunnel: int
     start_tunnel: int
+
+
+class HealthRequest(BaseModel):
+    tunnel_id: Union[int, List[int]]  # Single tunnel ID or list of tunnel IDs

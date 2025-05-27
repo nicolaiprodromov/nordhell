@@ -1,4 +1,6 @@
-let refreshInterval;
+let healthInterval;
+let statusInterval;
+let isStatusFetching = false;
 
 function showToast(title, message, type = 'info') {
     const toast = document.getElementById('toast');
@@ -27,7 +29,69 @@ function showToast(title, message, type = 'info') {
     }, 3000);
 }
 
+async function updateHealthStatus() {
+    // Skip health update if status is currently being fetched
+    if (isStatusFetching) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/health');
+        const data = await response.json();
+        
+        // Only update status column of existing rows, preserving all other data
+        const tbody = document.getElementById('tunnelsTableBody');
+        const existingRows = tbody.querySelectorAll('tr');
+        
+        // Create a map of tunnel health data for quick lookup
+        const healthMap = {};
+        data.tunnels.forEach(tunnel => {
+            healthMap[tunnel.tunnel_id] = tunnel;
+        });
+        
+        // Update status column for each existing row
+        existingRows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 3) {
+                // Extract tunnel ID from the tunnel name (e.g., "LLUSTR[0]" -> 0)
+                const tunnelName = cells[0].textContent.trim();
+                const tunnelIdMatch = tunnelName.match(/LLUSTR\[(\d+)\]/) || tunnelName.match(/(\d+)/);
+                
+                if (tunnelIdMatch) {
+                    const tunnelId = parseInt(tunnelIdMatch[1]);
+                    const healthData = healthMap[tunnelId];
+                    
+                    if (healthData) {
+                        // Update only the status cell (3rd column)
+                        const statusCell = cells[2];
+                        const statusClass = healthData.is_healthy ? 'text-green-400' : 'text-red-400';
+                        const statusIcon = healthData.is_healthy ? 'circle-check' : 'circle-x';
+                        const statusText = healthData.is_healthy ? 'UP' : 'DOWN';
+                        
+                        statusCell.innerHTML = `
+                            <span class="flex items-center space-x-2 ${statusClass}">
+                                <i data-lucide="${statusIcon}" class="w-4 h-4"></i>
+                                <span class="${healthData.is_healthy ? 'pulse-slow' : ''}">${statusText}</span>
+                            </span>
+                        `;
+                    }
+                }
+            }
+        });
+        
+        // Re-initialize Lucide icons for the updated status cells
+        lucide.createIcons();
+        
+    } catch (error) {
+        console.error('Error updating health status:', error);
+        // Don't show toast for health updates to avoid spamming user
+    }
+}
+
 async function refreshStatus() {
+    // Set flag to prevent health updates while status is fetching
+    isStatusFetching = true;
+    
     try {
         const response = await fetch('/status');
         const data = await response.json();
@@ -96,6 +160,9 @@ async function refreshStatus() {
     } catch (error) {
         showToast('Error', 'Failed to refresh status', 'error');
         console.error('Error:', error);
+    } finally {
+        // Reset flag regardless of success or failure
+        isStatusFetching = false;
     }
 }
 
@@ -111,7 +178,7 @@ async function startTunnel() {
         
         if (response.ok) {
             showToast('Success', `Started tunnel ${tunnelId}`, 'success');
-            setTimeout(refreshStatus, 1000);
+            setTimeout(updateHealthStatus, 1000);
         } else {
             const error = await response.json();
             showToast('Error', error.detail || 'Failed to start tunnel', 'error');
@@ -134,7 +201,7 @@ async function stopTunnel() {
         
         if (response.ok) {
             showToast('Success', `Stopped tunnel ${tunnelId}`, 'success');
-            setTimeout(refreshStatus, 1000);
+            setTimeout(updateHealthStatus, 1000);
         } else {
             const error = await response.json();
             showToast('Error', error.detail || 'Failed to stop tunnel', 'error');
@@ -154,7 +221,7 @@ async function stopSingleTunnel(tunnelId) {
         
         if (response.ok) {
             showToast('Success', `Stopped tunnel ${tunnelId}`, 'success');
-            setTimeout(refreshStatus, 1000);
+            setTimeout(updateHealthStatus, 1000);
         } else {
             const error = await response.json();
             showToast('Error', error.detail || 'Failed to stop tunnel', 'error');
@@ -185,7 +252,7 @@ async function replaceTunnel() {
         
         if (response.ok) {
             showToast('Success', `Replaced tunnel ${stopId} with ${startId}`, 'success');
-            setTimeout(refreshStatus, 1000);
+            setTimeout(updateHealthStatus, 1000);
         } else {
             const error = await response.json();
             showToast('Error', error.detail || 'Failed to replace tunnel', 'error');
@@ -199,11 +266,14 @@ async function replaceTunnel() {
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
     refreshStatus();
-    // Auto-refresh every 30 seconds
-    refreshInterval = setInterval(refreshStatus, 30000);
+    // Auto-refresh health status every 10 seconds (only updates status column)
+    healthInterval = setInterval(updateHealthStatus, 10000);
+    // Auto-refresh full status every 2 minutes (120 seconds)
+    statusInterval = setInterval(refreshStatus, 120000);
 });
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    if (refreshInterval) clearInterval(refreshInterval);
+    if (healthInterval) clearInterval(healthInterval);
+    if (statusInterval) clearInterval(statusInterval);
 });

@@ -1,9 +1,10 @@
 import os
+import time
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import HTMLResponse
 
-from models import StartRequest, StopRequest, ReplaceRequest
+from models import StartRequest, StopRequest, ReplaceRequest, HealthRequest
 from utils import PrettyJSONResponse
 from services import TunnelService
 from config import config
@@ -141,3 +142,105 @@ async def replace_tunnel(request: ReplaceRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/health", response_class=PrettyJSONResponse)
+async def health_check(request: HealthRequest):
+    """Check if tunnel(s) are up and running
+    
+    Parameters:
+    - tunnel_id: Single tunnel ID (int) or list of tunnel IDs ([int])
+    
+    Returns:
+    - overall_status: "healthy" if all tunnels are up, "unhealthy" if any are down
+    - tunnels: List of tunnel health status
+    - healthy_count: Number of healthy tunnels
+    - total_count: Total number of tunnels checked
+    """
+    try:
+        # Convert single tunnel ID to list for uniform processing
+        tunnel_ids = [request.tunnel_id] if isinstance(request.tunnel_id, int) else request.tunnel_id
+        
+        # Get health status for specific tunnels - use lightweight method
+        all_tunnels = []
+        for tunnel_id in tunnel_ids:
+            tunnels = await tunnel_service.get_tunnel_health(tunnel_id)
+            all_tunnels.extend(tunnels)
+        
+        # Check health status
+        healthy_tunnels = []
+        unhealthy_tunnels = []
+        
+        for tunnel in all_tunnels:
+            if tunnel["is_healthy"]:
+                healthy_tunnels.append(tunnel)
+            else:
+                unhealthy_tunnels.append(tunnel)
+        
+        # Determine overall health status
+        all_healthy = len(unhealthy_tunnels) == 0
+        overall_status = "healthy" if all_healthy else "unhealthy"
+        
+        return {
+            "overall_status": overall_status,
+            "tunnels": healthy_tunnels + unhealthy_tunnels,
+            "healthy_count": len(healthy_tunnels),
+            "total_count": len(all_tunnels),
+            "requested_tunnel_ids": tunnel_ids
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check tunnel health: {str(e)}")
+
+
+@router.get("/health", response_class=PrettyJSONResponse)
+async def health_check_get(tunnel_ids: Optional[List[int]] = Query(None)):
+    """Check if tunnel(s) are up and running (GET version)
+    
+    Parameters:
+    - tunnel_ids: Optional list of tunnel IDs to check. If not provided, checks all tunnels.
+    
+    Examples:
+    - /health - Checks all tunnels
+    - /health?tunnel_ids=0 - Checks tunnel 0
+    - /health?tunnel_ids=0&tunnel_ids=1&tunnel_ids=2 - Checks tunnels 0, 1, and 2
+    
+    Returns:
+    - overall_status: "healthy" if all tunnels are up, "unhealthy" if any are down
+    - tunnels: List of tunnel health status
+    - healthy_count: Number of healthy tunnels
+    - total_count: Total number of tunnels checked
+    """
+    try:
+        # Get health status for specific tunnels or all if none specified - use lightweight method
+        if tunnel_ids:
+            all_tunnels = []
+            for tunnel_id in tunnel_ids:
+                tunnels = await tunnel_service.get_tunnel_health(tunnel_id)
+                all_tunnels.extend(tunnels)
+        else:
+            # Get all tunnels if no specific IDs provided
+            all_tunnels = await tunnel_service.get_tunnel_health()
+        
+        # Check health status
+        healthy_tunnels = []
+        unhealthy_tunnels = []
+        
+        for tunnel in all_tunnels:
+            if tunnel["is_healthy"]:
+                healthy_tunnels.append(tunnel)
+            else:
+                unhealthy_tunnels.append(tunnel)
+        
+        # Determine overall health status
+        all_healthy = len(unhealthy_tunnels) == 0
+        overall_status = "healthy" if all_healthy else "unhealthy"
+        
+        return {
+            "overall_status": overall_status,
+            "tunnels": healthy_tunnels + unhealthy_tunnels,
+            "healthy_count": len(healthy_tunnels),
+            "total_count": len(all_tunnels),
+            "requested_tunnel_ids": tunnel_ids or "all"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check tunnel health: {str(e)}")

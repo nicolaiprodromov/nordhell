@@ -137,8 +137,27 @@ async def get_external_ip_via_proxy(port: str) -> tuple[str, str]:
 def parse_uptime(created_time_str: str) -> str:
     """Parse container creation time and calculate uptime"""
     try:
-        # Parse Docker's timestamp format
-        created_time = datetime.fromisoformat(created_time_str.replace('Z', '+00:00'))
+        # Docker returns timestamps with nanosecond precision (9 digits after decimal)
+        # but Python's fromisoformat only supports microsecond precision (6 digits)
+        # We need to truncate the nanoseconds to microseconds
+        
+        # Replace Z with timezone offset
+        timestamp = created_time_str.replace('Z', '+00:00')
+        
+        # Handle nanosecond precision by truncating to microseconds
+        if '.' in timestamp and '+' in timestamp:
+            # Split on the decimal point
+            date_part, time_part = timestamp.split('.')
+            # Split the fractional seconds and timezone
+            fractional_part, tz_part = time_part.split('+')
+            # Truncate to 6 digits (microseconds) if longer
+            if len(fractional_part) > 6:
+                fractional_part = fractional_part[:6]
+            # Reconstruct the timestamp
+            timestamp = f"{date_part}.{fractional_part}+{tz_part}"
+        
+        # Parse the corrected timestamp
+        created_time = datetime.fromisoformat(timestamp)
         now = datetime.now(created_time.tzinfo)
         uptime = now - created_time
         
