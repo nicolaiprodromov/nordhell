@@ -1,87 +1,40 @@
+ ```
+███╗   ██╗ ██████╗ ██████╗ ██████╗ ██╗  ██╗███████╗██╗     ██╗     
+████╗  ██║██╔═══██╗██╔══██╗██╔══██╗██║  ██║██╔════╝██║     ██║     
+██╔██╗ ██║██║   ██║██████╔╝██║  ██║███████║█████╗  ██║     ██║     
+██║╚██╗██║██║   ██║██╔══██╗██║  ██║██╔══██║██╔══╝  ██║     ██║     
+██║ ╚████║╚██████╔╝██║  ██║██████╔╝██║  ██║███████╗███████╗███████╗
+╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝ 
+a scalable vpn tunnel proxy orchestartor ══════════════════════════
 ```
-██████████████████████████████████████████████████████████████████████████████
-█                                                                            █
-█   ███╗   ██╗ ██████╗ ██████╗ ██████╗     ██╗  ██╗███████╗██╗     ██╗       █
-█   ████╗  ██║██╔═══██╗██╔══██╗██╔══██╗    ██║  ██║██╔════╝██║     ██║       █
-█   ██╔██╗ ██║██║   ██║██████╔╝██║  ██║    ███████║█████╗  ██║     ██║       █
-█   ██║╚██╗██║██║   ██║██╔══██╗██║  ██║    ██╔══██║██╔══╝  ██║     ██║       █
-█   ██║ ╚████║╚██████╔╝██║  ██║██████╔╝    ██║  ██║███████╗███████╗███████╗  █
-█   ╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  █
-█                                                                            █   
-██████████████████████████████████████████████████████████████████████████████
-```
+## prerequisites
 
-a scalable system for managing multiple concurrent vpn tunnel/passages with socks5 proxies using docker containers
+- docker running
+- [just](https://github.com/casey/just)
 
 ## setup
 
-1. download your nordvpn configuration files into `vpn-configs/` directory. You can get them from [nordvpn.com](https://nordvpn.com/servers/tools/) or use the provided script:
+1. clone this repository:
 
    ```bash
-   mkdir -p vpn-configs
-   wget -O - https://downloads.nordcdn.com/configs/archives/servers/ovpn.zip | unzip -j - 'ovpn_udp/*.ovpn' -d vpn-configs/
+   git clone https://github.com/nicolaiprodromov/nordhell.git
+   cd nordhell
    ```
+2. download your nordvpn configuration files into `vpn-configs/`:
 
-2. make `docker-compose.yml`:
-
-   ```yaml
-   name: nordhell
-   services:
-   nordhell-passage:
-      build:
-         context: .
-         args:
-         - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
-      image: nicolaiprodromov/nordhell-passage:latest
-      container_name: nordhell-passage-${VPN_CONFIG_NUM:-0}
-      networks:
-         - nordhell-network
-      env_file:
-         - .env
-      environment:
-         - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
-      tmpfs:
-         - /run/vpn-credentials:size=1M,mode=700,noexec,nosuid
-      security_opt:
-         - no-new-privileges:true
-         - seccomp:unconfined
-      cap_add:
-         - NET_ADMIN
-         - SYS_MODULE
-      devices:
-         - /dev/net/tun:/dev/net/tun
-      ports:
-         - "${SOCKS_PORT:-1080}:1080"
-      restart: unless-stopped
-      init: true
-      dns:
-         - 1.1.1.1
-         - 8.8.8.8
-      healthcheck:
-         test: ["CMD", "sh", "-c", "nc -z 127.0.0.1 1080 && ip link show tun0"]
-         interval: 30s
-         timeout: 5s
-         retries: 3
-         start_period: 10s
-
-   networks:
-   nordhell-network:
-      name: nordhell-network
+   ```bash
+   python3 scripts/download_nordvpn_configs.py
    ```
 
 3. copy your service credentials into a `.env` file:
    ```
    VPN_USERNAME=your_nordvpn_username
    VPN_PASSWORD=your_nordvpn_password
+   SOCKS_BASE_PORT=2000
+   SOCKS_MAX_PORT=2100
    ```
    
-4. run these two commands:
-
-   ```bash
-   export VPN_CONFIG_NUM=0
-   docker compose build --build-arg VPN_CONFIG_NUM=${VPN_CONFIG_NUM}
-   docker compose up -d
-   ```
+4. run `just start 0` to start the first passage.
 
 ## usage
 
@@ -121,13 +74,11 @@ Maintenance:
 For more commands: just --list
 ```
 
-### using the SOCKS5 Proxy
-
-each VPN tunnel exposes a SOCKS5 proxy on a different port, starting from 1080. to use with curl:
+### using the SOCKS5 proxies
 
 ```bash
-export http_proxy=socks5h://localhost:1080
-export https_proxy=socks5h://localhost:1080
+export http_proxy=socks5h://localhost:2000
+export https_proxy=socks5h://localhost:2000
 curl https://ipinfo.io
 ```
 
