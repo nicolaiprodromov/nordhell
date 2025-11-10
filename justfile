@@ -1,6 +1,13 @@
-# LLUSTR Proxy - Justfile
-# VPN tunnel management made easy
-
+# ██████████████████████████████████████████████████████████████████████████████
+# █                                                                            █
+# █   ███╗   ██╗ ██████╗ ██████╗ ██████╗     ██╗  ██╗███████╗██╗     ██╗       █
+# █   ████╗  ██║██╔═══██╗██╔══██╗██╔══██╗    ██║  ██║██╔════╝██║     ██║       █
+# █   ██╔██╗ ██║██║   ██║██████╔╝██║  ██║    ███████║█████╗  ██║     ██║       █
+# █   ██║╚██╗██║██║   ██║██╔══██╗██║  ██║    ██╔══██║██╔══╝  ██║     ██║       █
+# █   ██║ ╚████║╚██████╔╝██║  ██║██████╔╝    ██║  ██║███████╗███████╗███████╗  █
+# █   ╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  █
+# █                                                                            █   
+# ██████████████████████████████████████████████████████████████████████████████
 # Default recipe - show available commands
 default:
     @just --list
@@ -57,39 +64,39 @@ test:
 
 # Check Docker containers (raw docker ps output)
 ps:
-    @docker ps --filter "name=llustr-proxy-tunnel-" --format "table {{{{.Names}}\t{{{{.Status}}\t{{{{.Ports}}"
+    @docker ps --filter "name=nordhell-passage-" --format "table {{{{.Names}}\t{{{{.Status}}\t{{{{.Ports}}"
 
 # View logs for a specific tunnel (e.g., just logs 0)
 logs tunnel *flags='':
-    @docker logs {{flags}} llustr-proxy-tunnel-{{tunnel}}
+    @docker logs {{flags}} nordhell-passage-{{tunnel}}
 
 # Follow logs for a specific tunnel (e.g., just follow 0)
 follow tunnel:
-    @docker logs -f llustr-proxy-tunnel-{{tunnel}}
+    @docker logs -f nordhell-passage-{{tunnel}}
 
 # Show last 50 lines of logs for a tunnel
 tail tunnel:
-    @docker logs --tail 50 llustr-proxy-tunnel-{{tunnel}}
+    @docker logs --tail 50 nordhell-passage-{{tunnel}}
 
 # Inspect a specific tunnel container
 inspect tunnel:
-    @docker inspect llustr-proxy-tunnel-{{tunnel}}
+    @docker inspect nordhell-passage-{{tunnel}}
 
 # Execute a command in a running tunnel container
 exec tunnel *cmd:
-    @docker exec -it llustr-proxy-tunnel-{{tunnel}} {{cmd}}
+    @docker exec -it nordhell-passage-{{tunnel}} {{cmd}}
 
 # Get a shell in a running tunnel container
 shell tunnel:
-    @docker exec -it llustr-proxy-tunnel-{{tunnel}} /bin/bash
+    @docker exec -it nordhell-passage-{{tunnel}} /bin/bash
 
 # Show memory usage for all tunnels
 mem:
-    @docker stats --no-stream --format "table {{{{.Name}}}}\t{{{{.MemUsage}}}}\t{{{{.CPUPerc}}}}" $(docker ps -q --filter "name=llustr-proxy-tunnel-")
+    @docker stats --no-stream --format "table {{{{.Name}}}}\t{{{{.MemUsage}}}}\t{{{{.CPUPerc}}}}" $(docker ps -q --filter "name=nordhell-passage-")
 
 # Show network stats for all tunnels
 net:
-    @docker stats --no-stream --format "table {{{{.Name}}}}\t{{{{.NetIO}}}}" $(docker ps -q --filter "name=llustr-proxy-tunnel-")
+    @docker stats --no-stream --format "table {{{{.Name}}}}\t{{{{.NetIO}}}}" $(docker ps -q --filter "name=nordhell-passage-")
 
 # Clean up stopped containers and unused images
 clean:
@@ -106,7 +113,7 @@ deep-clean:
         echo "Stopping all tunnels..."; \
         ./stop.sh all || true; \
         echo "Removing llustr images..."; \
-        docker images --filter "reference=llustr-proxy-tunnel-*" -q | xargs -r docker rmi -f; \
+        docker images --filter "reference=nordhell-passage-*" -q | xargs -r docker rmi -f; \
         echo "Cleaning up checksum cache..."; \
         rm -rf .llustr_checksums; \
         echo "Deep clean complete!"; \
@@ -173,7 +180,7 @@ restart-rebuild tunnel:
 # Show detailed info about a specific tunnel
 info tunnel:
     #!/usr/bin/env bash
-    container="llustr-proxy-tunnel-{{tunnel}}"
+    container="nordhell-passage-{{tunnel}}"
     
     if ! docker ps -q --filter "name=$container" | grep -q .; then
         echo "Error: Tunnel {{tunnel}} is not running"
@@ -201,14 +208,14 @@ test-port port:
 # Get exit IP for a specific tunnel
 exit-ip tunnel:
     #!/usr/bin/env bash
-    port=$(docker port llustr-proxy-tunnel-{{tunnel}} 1080/tcp | cut -d ':' -f 2)
+    port=$(docker port nordhell-passage-{{tunnel}} 1080/tcp | cut -d ':' -f 2)
     curl -s --socks5 127.0.0.1:$port https://ipinfo.io/json | jq -r '.ip // "Unknown"'
 
 # Show all exit IPs for running tunnels
 exit-ips:
     #!/usr/bin/env bash
     echo "Fetching exit IPs for all tunnels..."
-    for container in $(docker ps --filter "name=llustr-proxy-tunnel-" --format "{{{{.Names}}"); do
+    for container in $(docker ps --filter "name=nordhell-passage-" --format "{{{{.Names}}"); do
         tunnel_id=$(echo $container | sed 's/.*-//')
         port=$(docker port $container 1080/tcp | cut -d ':' -f 2)
         ip=$(curl -s --max-time 5 --socks5 127.0.0.1:$port https://api.ipify.org?format=json | jq -r '.ip // "Timeout"')
@@ -234,12 +241,12 @@ list-configs:
 
 # Count running tunnels
 count:
-    @docker ps --filter "name=llustr-proxy-tunnel-" --format "{{{{.Names}}}}" | wc -l | xargs echo "Running tunnels:"
+    @docker ps --filter "name=nordhell-passage-" --format "{{{{.Names}}}}" | wc -l | xargs echo "Running tunnels:"
 
 # Export proxy settings for current shell (prints commands to eval)
 export tunnel='0':
     #!/usr/bin/env bash
-    port=$(docker port llustr-proxy-tunnel-{{tunnel}} 1080/tcp 2>/dev/null | cut -d ':' -f 2)
+    port=$(docker port nordhell-passage-{{tunnel}} 1080/tcp 2>/dev/null | cut -d ':' -f 2)
     if [ -z "$port" ]; then
         echo "Error: Tunnel {{tunnel}} is not running"
         exit 1
@@ -250,12 +257,12 @@ export tunnel='0':
 
 # Health check for a specific tunnel
 health tunnel:
-    @docker inspect --format='{{{{.State.Health.Status}}}}' llustr-proxy-tunnel-{{tunnel}} 2>/dev/null || echo "No health status available"
+    @docker inspect --format='{{{{.State.Health.Status}}}}' nordhell-passage-{{tunnel}} 2>/dev/null || echo "No health status available"
 
 # Show resource usage summary
 resources:
     @echo "=== LLUSTR Tunnels Resource Usage ==="
-    @docker stats --no-stream --format "table {{{{.Name}}}}\t{{{{.CPUPerc}}}}\t{{{{.MemUsage}}}}\t{{{{.NetIO}}}}\t{{{{.BlockIO}}}}" $(docker ps -q --filter "name=llustr-proxy-tunnel-")
+    @docker stats --no-stream --format "table {{{{.Name}}}}\t{{{{.CPUPerc}}}}\t{{{{.MemUsage}}}}\t{{{{.NetIO}}}}\t{{{{.BlockIO}}}}" $(docker ps -q --filter "name=nordhell-passage-")
 
 # Watch status in real-time (requires watch command)
 watch-status:

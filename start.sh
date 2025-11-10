@@ -72,16 +72,16 @@ start_vpn_tunnel() {
         return 1
     fi
     
-    local EXISTING_CONTAINER=$(docker ps -q -f name=llustr-proxy-tunnel-${VPN_CONFIG_NUM})
+    local EXISTING_CONTAINER=$(docker ps -q -f name=nordhell-passage-${VPN_CONFIG_NUM})
     if [ ! -z "$EXISTING_CONTAINER" ]; then
         
-        local CURRENT_PORT=$(docker port llustr-proxy-tunnel-${VPN_CONFIG_NUM} 1080/tcp | cut -d ':' -f 2)
+        local CURRENT_PORT=$(docker port nordhell-passage-${VPN_CONFIG_NUM} 1080/tcp | cut -d ':' -f 2)
         echo "SOCKS5 proxy available at: localhost:${CURRENT_PORT}"
         return 0
     fi
     
     
-    local USED_PORTS=$(docker ps --filter "name=llustr-proxy-tunnel-" --format "{{.Ports}}" | grep -oP "0.0.0.0:\K\d+" || echo "")
+    local USED_PORTS=$(docker ps --filter "name=nordhell-passage-" --format "{{.Ports}}" | grep -oP "0.0.0.0:\K\d+" || echo "")
     
     local PORT=1080
     
@@ -123,7 +123,7 @@ start_vpn_tunnel() {
     
     sleep 2
     
-    if ! docker ps -q --filter "name=llustr-proxy-tunnel-${VPN_CONFIG_NUM}" | grep -q .; then
+    if ! docker ps -q --filter "name=nordhell-passage-${VPN_CONFIG_NUM}" | grep -q .; then
         echo "Error: Failed to start VPN tunnel container."
         echo "Check docker logs with: docker compose -p $COMPOSE_PROJECT_NAME logs"
         return 1
@@ -132,7 +132,7 @@ start_vpn_tunnel() {
     local SERVER_NAME=$(basename $CONFIG_FILE .tcp.ovpn)
     echo "-------------------------------------"
     echo "LLUSTR TNNL:"
-    echo "  Container    : llustr-proxy-tunnel-${VPN_CONFIG_NUM}"
+    echo "  Container    : nordhell-passage-${VPN_CONFIG_NUM}"
     echo "  VPN Server   : ${SERVER_NAME}"
     echo "  SOCKS5 Proxy : localhost:${SOCKS_PORT}" 
     echo "  Project      : $COMPOSE_PROJECT_NAME"
@@ -145,7 +145,7 @@ FORCE_BUILD="false"
 UPDATE_CONFIGS="false"
 VPN_CONFIG=""
 
-while [[ $
+while [[ $# -gt 0 ]]; do
     case $1 in
         --build)
             FORCE_BUILD="true"

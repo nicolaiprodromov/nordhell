@@ -8,7 +8,7 @@ if [ -z "$1" ]; then
     echo "Currently running tunnels:"
     
     
-    CONTAINERS=$(docker ps --filter "name=llustr-proxy-tunnel-" --format "{{.Names}}")
+    CONTAINERS=$(docker ps --filter "name=nordhell-passage-" --format "{{.Names}}")
     
     if [ -z "$CONTAINERS" ]; then
         echo "  No active tunnels found."
@@ -28,7 +28,7 @@ if [ "$1" = "all" ]; then
     echo "Stopping all tunnels..."
     
     
-    CONTAINERS=$(docker ps -q --filter "name=llustr-proxy-tunnel-")
+    CONTAINERS=$(docker ps -q --filter "name=nordhell-passage-")
     
     if [ -z "$CONTAINERS" ]; then
         echo "No active tunnels found."
@@ -36,7 +36,7 @@ if [ "$1" = "all" ]; then
     fi
     
     
-    for CONTAINER in $(docker ps --format "{{.Names}}" --filter "name=llustr-proxy-tunnel-"); do
+    for CONTAINER in $(docker ps --format "{{.Names}}" --filter "name=nordhell-passage-"); do
         CONFIG_NUM=$(echo $CONTAINER | sed 's/.*-//')
         PROJECT="llustr-$CONFIG_NUM"
         echo "Stopping project $PROJECT..."
@@ -47,7 +47,7 @@ if [ "$1" = "all" ]; then
 else
     
     CONFIG_NUM=$1
-    CONTAINER_NAME="llustr-proxy-tunnel-$CONFIG_NUM"
+    CONTAINER_NAME="nordhell-passage-$CONFIG_NUM"
     
     
     if ! docker ps -q --filter "name=$CONTAINER_NAME" | grep -q .; then

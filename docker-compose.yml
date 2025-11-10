@@ -1,13 +1,24 @@
+# ██████████████████████████████████████████████████████████████████████████████
+# █                                                                            █
+# █   ███╗   ██╗ ██████╗ ██████╗ ██████╗     ██╗  ██╗███████╗██╗     ██╗       █
+# █   ████╗  ██║██╔═══██╗██╔══██╗██╔══██╗    ██║  ██║██╔════╝██║     ██║       █
+# █   ██╔██╗ ██║██║   ██║██████╔╝██║  ██║    ███████║█████╗  ██║     ██║       █
+# █   ██║╚██╗██║██║   ██║██╔══██╗██║  ██║    ██╔══██║██╔══╝  ██║     ██║       █
+# █   ██║ ╚████║╚██████╔╝██║  ██║██████╔╝    ██║  ██║███████╗███████╗███████╗  █
+# █   ╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  █
+# █                                                                            █   
+# ██████████████████████████████████████████████████████████████████████████████
+name: nordhell
 services:
-  llustr-proxy-tunnel:
+  nordhell-passage:
     build:
       context: .
       args:
         - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
-    image: llustr-proxy-tunnel-${VPN_CONFIG_NUM:-0}
-    container_name: llustr-proxy-tunnel-${VPN_CONFIG_NUM:-0}
+    image: nicolaiprodromov/nordhell-passage:latest
+    container_name: nordhell-passage-${VPN_CONFIG_NUM:-0}
     networks:
-      - llustr-proxy-network
+      - nordhell-network
     env_file:
       - .env
     environment:
@@ -37,5 +48,5 @@ services:
       start_period: 10s
 
 networks:
-  llustr-proxy-network:
-    name: llustr-proxy-network
+  nordhell-network:
+    name: nordhell-network

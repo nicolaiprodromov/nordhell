@@ -20,7 +20,7 @@ class ProxyTester(unittest.TestCase):
     def _get_running_tunnels(self) -> List[Tuple[str, int]]:
         tunnels = []
         try:
-            cmd = "docker ps --filter \"name=llustr-proxy-tunnel-\" --format \"{{.Names}}\""
+            cmd = "docker ps --filter \"name=nordhell-passage-\" --format \"{{.Names}}\""
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             container_names = result.stdout.strip().split('\n')
             container_names = [name for name in container_names if name]

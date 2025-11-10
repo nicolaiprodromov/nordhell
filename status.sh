@@ -8,7 +8,7 @@ echo "LLUSTR TNNLs:"
 echo "-------------------------------------"
 
 
-if ! docker ps --filter "name=llustr-proxy-tunnel-" | grep -q llustr-proxy-tunnel; then
+if ! docker ps --filter "name=nordhell-passage-" | grep -q nordhell-passage; then
     echo "No active VPN tunnels found."
     exit 0
 fi
@@ -191,7 +191,7 @@ CGROUP_VERSION=$(determine_cgroup_version)
 
 
 echo "Gathering container information..." >&2
-CONTAINER_DATA=$(docker ps --filter "name=llustr-proxy-tunnel-" --format "{{.ID}}|{{.Names}}|{{.Status}}|{{.Ports}}")
+CONTAINER_DATA=$(docker ps --filter "name=nordhell-passage-" --format "{{.ID}}|{{.Names}}|{{.Status}}|{{.Ports}}")
 
 
 mapfile -t CONTAINER_ARRAY < <(echo "$CONTAINER_DATA" | sort -t '-' -k4 -n)
@@ -202,7 +202,7 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
     IFS='|' read -r CONTAINER_ID CONTAINER STATUS_TEXT PORT_INFO <<< "$container_info"
     
     
-    if [[ "$CONTAINER" =~ llustr-proxy-tunnel-([0-9]+) ]]; then
+    if [[ "$CONTAINER" =~ nordhell-passage-([0-9]+) ]]; then
         TUNNEL_ID="${BASH_REMATCH[1]}"
         TUNNEL_NAME="LLUSTR[$TUNNEL_ID]"
     else

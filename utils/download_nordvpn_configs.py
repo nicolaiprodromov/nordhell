@@ -3,12 +3,11 @@ import sys
 import requests
 import zipfile
 import io
+import re
 import argparse
 import traceback
 import random
-import shutil
 from collections import defaultdict
-import re
 def download_nordvpn_zip(output_dir, protocol='tcp', count=200, max_per_country=1, clear_folder=True):
     if not os.path.isabs(output_dir):
         script_dir = os.path.dirname(os.path.abspath(__file__))

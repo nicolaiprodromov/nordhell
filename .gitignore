@@ -12,3 +12,5 @@ vpn-configs/*
 .llustr_checksums/*
 
 server/
+
+.vscode/
