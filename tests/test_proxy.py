@@ -1,61 +1,39 @@
-#!/usr/bin/env python3
-
 import unittest
 import requests
 import sys
 import subprocess
 from typing import List, Tuple, Optional
-
 class ProxyTester(unittest.TestCase):
-    """Test class for verifying VPN tunnels are working correctly."""
-    
     def setUp(self):
-        """Get the host IP address before running tests."""
         self.host_ip = self._get_ip()
         print(f"Host IP: {self.host_ip}")
-        
-        # Get all running tunnels
         self.tunnels = self._get_running_tunnels()
         if not self.tunnels:
             print("No active VPN tunnels found.")
-    
     def _get_ip(self) -> Optional[str]:
-        """Get the current IP address without using a proxy."""
         try:
             response = requests.get('https://api.ipify.org?format=json', timeout=10)
             return response.json()['ip']
         except Exception as e:
             print(f"Error getting IP: {e}")
             return None
-    
     def _get_running_tunnels(self) -> List[Tuple[str, int]]:
-        """Get list of all running VPN tunnels with their ports."""
         tunnels = []
         try:
-            # Get all running containers with the llustr prefix
             cmd = "docker ps --filter \"name=llustr-proxy-tunnel-\" --format \"{{.Names}}\""
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
             container_names = result.stdout.strip().split('\n')
-            
-            # Filter out empty results
             container_names = [name for name in container_names if name]
-            
-            # For each container, get the port mapping
             for name in container_names:
                 port_cmd = f"docker port {name} 1080/tcp"
                 port_result = subprocess.run(port_cmd, shell=True, capture_output=True, text=True)
                 if port_result.stdout:
-                    # Extract port number from output like "0.0.0.0:1080" or ":::1080"
                     port = port_result.stdout.strip().split(':')[-1]
                     tunnels.append((name, int(port)))
-            
         except Exception as e:
             print(f"Error getting running tunnels: {e}")
-        
         return tunnels
-    
     def _get_proxy_ip(self, port: int) -> Optional[str]:
-        """Get IP address when using the specified proxy port."""
         try:
             proxies = {
                 'http': f'socks5://localhost:{port}',
@@ -67,34 +45,20 @@ class ProxyTester(unittest.TestCase):
             return response.json()['ip']
         except Exception as e:
             return None
-
     def test_host_ip(self):
-        """Test that we have a valid host IP."""
         self.assertIsNotNone(self.host_ip, "Failed to get host IP address")
-    
     def test_tunnels_running(self):
-        """Test that there are running tunnels."""
         self.assertTrue(len(self.tunnels) > 0, "No VPN tunnels are running")
-    
     def test_all_tunnels(self):
-        """Test all detected tunnels to ensure they provide different IPs."""
         if not self.tunnels:
             self.skipTest("No tunnels to test")
-        
         for name, port in self.tunnels:
             with self.subTest(f"Tunnel {name} on port {port}"):
                 proxy_ip = self._get_proxy_ip(port)
-                
-                # Check if we got a valid IP
                 self.assertIsNotNone(proxy_ip, f"Failed to get IP through proxy on port {port}")
-                
-                # Check if the proxy IP is different from the host IP
                 self.assertNotEqual(self.host_ip, proxy_ip, 
                                    f"Tunnel {name} (port {port}) has same IP as host")
-                
                 print(f"Tunnel {name} (port {port}): IP = {proxy_ip} [PASSED]")
-
-
 if __name__ == "__main__":
     print("VPN Tunnels Test")
     print("-----------------")

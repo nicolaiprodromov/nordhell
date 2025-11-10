@@ -12,26 +12,23 @@ services:
       - .env
     environment:
       - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
-    # Use tmpfs (in-memory filesystem) for sensitive data
     tmpfs:
       - /run/vpn-credentials:size=1M,mode=700,noexec,nosuid
-    # Add security options to restrict container capabilities
     security_opt:
       - no-new-privileges:true
-      - seccomp:unconfined  # Required for VPN functionality
+      - seccomp:unconfined
     cap_add:
-      - NET_ADMIN  # Required for VPN
+      - NET_ADMIN
       - SYS_MODULE
     devices:
-      - /dev/net/tun:/dev/net/tun  # Required for VPN
+      - /dev/net/tun:/dev/net/tun
     ports:
-      - "${SOCKS_PORT:-1080}:1080"  # Expose SOCKS5 port on dynamic host port
+      - "${SOCKS_PORT:-1080}:1080"
     restart: unless-stopped
-    init: true  # Faster initialization and proper signal handling
+    init: true
     dns:
-      - 1.1.1.1  # Cloudflare DNS for faster resolution
-      - 8.8.8.8  # Google DNS as backup
-    # Configure healthcheck to test the SOCKS proxy directly
+      - 1.1.1.1
+      - 8.8.8.8
     healthcheck:
       test: ["CMD", "sh", "-c", "nc -z 127.0.0.1 1080 && ip link show tun0"]
       interval: 30s
@@ -42,4 +39,3 @@ services:
 networks:
   llustr-proxy-network:
     name: llustr-proxy-network
-    # Using the default driver which is 'bridge'
