@@ -11,7 +11,7 @@
 ██████████████████████████████████████████████████████████████████████████████
 ```
 
-a scalable system for managing multiple concurrent VPN passages with SOCKS5 proxies using docker containers
+a scalable system for managing multiple concurrent vpn tunnel/passages with socks5 proxies using docker containers
 
 ## setup
 
@@ -87,37 +87,35 @@ a scalable system for managing multiple concurrent VPN passages with SOCKS5 prox
 
 ```bash
 just help
-LLUSTR Proxy - VPN Tunnel Management
-=====================================
 
 Quick Start:
   just check          - Validate setup
-  just start 0        - Start tunnel 0
-  just status         - Show all tunnels
-  just stop 0         - Stop tunnel 0
+  just start 0        - Start passage 0
+  just status         - Show all passages
+  just stop 0         - Stop passage 0
 
-Starting Tunnels:
-  just start 5              - Start tunnel 5
-  just start 0-4            - Start tunnels 0 through 4
+Starting passages:
+  just start 5              - Start passage 5
+  just start 0-4            - Start passages 0 through 4
   just rebuild 5            - Force rebuild and start
   just fresh 5              - Download fresh configs and start
   just fresh-rebuild 5      - Fresh configs + rebuild + start
 
 Monitoring:
-  just status               - Show all tunnel status
-  just logs 0               - View logs for tunnel 0
+  just status               - Show all passage status
+  just logs 0               - View logs for passage 0
   just follow 0             - Follow logs in real-time
-  just info 0               - Detailed info about tunnel 0
-  just exit-ips             - Show exit IPs for all tunnels
+  just info 0               - Detailed info about passage 0
+  just exit-ips             - Show exit IPs for all passages
 
 Testing:
   just test                 - Run automated tests
   just test-port 1080       - Test specific proxy port
-  just exit-ip 0            - Get exit IP for tunnel 0
+  just exit-ip 0            - Get exit IP for passage 0
 
 Maintenance:
   just clean                - Clean up stopped containers
-  just restart 0            - Restart tunnel 0
+  just restart 0            - Restart passage 0
   just update-configs       - Download fresh VPN configs
 
 For more commands: just --list

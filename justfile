@@ -15,22 +15,22 @@ default:
 # Start a single VPN tunnel or range (e.g., just start 0 or just start 0-4)
 start config='0' *flags='':
     @echo "Starting VPN tunnel(s) for config: {{config}}"
-    ./start.sh {{flags}} {{config}}
+    ./scripts/start.sh {{flags}} {{config}}
 
 # Start with forced rebuild
 rebuild config='0' *flags='':
     @echo "Starting VPN tunnel(s) with forced rebuild: {{config}}"
-    ./start.sh --build {{flags}} {{config}}
+    ./scripts/start.sh --build {{flags}} {{config}}
 
 # Start with fresh VPN configs download
 fresh config='0' *flags='':
     @echo "Downloading fresh VPN configs and starting: {{config}}"
-    ./start.sh --update-configs {{flags}} {{config}}
+    ./scripts/start.sh --update-configs {{flags}} {{config}}
 
 # Start with fresh configs AND rebuild
 fresh-rebuild config='0' *flags='':
     @echo "Downloading fresh configs, rebuilding, and starting: {{config}}"
-    ./start.sh --update-configs --build {{flags}} {{config}}
+    ./scripts/start.sh --update-configs --build {{flags}} {{config}}
 
 # Stop a specific tunnel or all tunnels (e.g., just stop 0 or just stop all)
 stop target='':
@@ -40,14 +40,14 @@ stop target='':
         echo "Examples:"
         echo "  just stop 0     # Stop tunnel [0]"
         echo "  just stop all   # Stop all tunnels"
-        ./stop.sh
+        ./scripts/stop.sh
     else
-        ./stop.sh {{target}}
+        ./scripts/stop.sh {{target}}
     fi
 
 # Show status of all running tunnels
 status:
-    @./status.sh
+    @./scripts/status.sh
 
 # Alias for status
 st: status
@@ -111,7 +111,7 @@ deep-clean:
     @read -p "Are you sure? (y/N) " -n 1 -r; echo; \
     if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
         echo "Stopping all tunnels..."; \
-        ./stop.sh all || true; \
+        ./scripts/stop.sh all || true; \
         echo "Removing llustr images..."; \
         docker images --filter "reference=nordhell-passage-*" -q | xargs -r docker rmi -f; \
         echo "Cleaning up checksum cache..."; \
@@ -266,7 +266,7 @@ resources:
 
 # Watch status in real-time (requires watch command)
 watch-status:
-    @watch -n 2 -c './status.sh'
+    @watch -n 2 -c './scripts/status.sh'
 
 # Show docker-compose config for a tunnel
 show-config tunnel:
@@ -278,37 +278,46 @@ validate:
 
 # Show help with detailed examples
 help:
-    @echo "LLUSTR Proxy - VPN Tunnel Management"
-    @echo "====================================="
-    @echo ""
-    @echo "Quick Start:"
-    @echo "  just check          - Validate setup"
-    @echo "  just start 0        - Start tunnel 0"
-    @echo "  just status         - Show all tunnels"
-    @echo "  just stop 0         - Stop tunnel 0"
-    @echo ""
-    @echo "Starting Tunnels:"
-    @echo "  just start 5              - Start tunnel 5"
-    @echo "  just start 0-4            - Start tunnels 0 through 4"
-    @echo "  just rebuild 5            - Force rebuild and start"
-    @echo "  just fresh 5              - Download fresh configs and start"
-    @echo "  just fresh-rebuild 5      - Fresh configs + rebuild + start"
-    @echo ""
-    @echo "Monitoring:"
-    @echo "  just status               - Show all tunnel status"
-    @echo "  just logs 0               - View logs for tunnel 0"
-    @echo "  just follow 0             - Follow logs in real-time"
-    @echo "  just info 0               - Detailed info about tunnel 0"
-    @echo "  just exit-ips             - Show exit IPs for all tunnels"
-    @echo ""
-    @echo "Testing:"
-    @echo "  just test                 - Run automated tests"
-    @echo "  just test-port 1080       - Test specific proxy port"
-    @echo "  just exit-ip 0            - Get exit IP for tunnel 0"
-    @echo ""
-    @echo "Maintenance:"
-    @echo "  just clean                - Clean up stopped containers"
-    @echo "  just restart 0            - Restart tunnel 0"
-    @echo "  just update-configs       - Download fresh VPN configs"
-    @echo ""
-    @echo "For more commands: just --list"
+        @printf '%s\n' \
+            " ██████████████████████████████████████████████████████████████████████████████" \
+            " █                                                                            █" \
+            " █   ███╗   ██╗ ██████╗ ██████╗ ██████╗     ██╗  ██╗███████╗██╗     ██╗       █" \
+            " █   ████╗  ██║██╔═══██╗██╔══██╗██╔══██╗    ██║  ██║██╔════╝██║     ██║       █" \
+            " █   ██╔██╗ ██║██║   ██║██████╔╝██║  ██║    ███████║█████╗  ██║     ██║       █" \
+            " █   ██║╚██╗██║██║   ██║██╔══██╗██║  ██║    ██╔══██║██╔══╝  ██║     ██║       █" \
+            " █   ██║ ╚████║╚██████╔╝██║  ██║██████╔╝    ██║  ██║███████╗███████╗███████╗  █" \
+            " █   ╚═╝  ╚═══╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝  █" \
+            " █                                                                            █   " \
+            " ██████████████████████████████████████████████████████████████████████████████" \
+            "" \
+            "Quick Start:" \
+            "  just check          - Validate setup" \
+            "  just start 0        - Start tunnel 0" \
+            "  just status         - Show all tunnels" \
+            "  just stop 0         - Stop tunnel 0" \
+            "" \
+            "Starting Passages:" \
+            "  just start 5              - Start passage 5" \
+            "  just start 0-4            - Start passages 0 through 4" \
+            "  just rebuild 5            - Force rebuild and start" \
+            "  just fresh 5              - Download fresh configs and start" \
+            "  just fresh-rebuild 5      - Fresh configs + rebuild + start" \
+            "" \
+            "Monitoring:" \
+            "  just status               - Show all passage status" \
+            "  just logs 0               - View logs for passage 0" \
+            "  just follow 0             - Follow logs in real-time" \
+            "  just info 0               - Detailed info about passage 0" \
+            "  just exit-ips             - Show exit IPs for all passages" \
+            "" \
+            "Testing:" \
+            "  just test                 - Run automated tests" \
+            "  just test-port 1080       - Test specific proxy port" \
+            "  just exit-ip 0            - Get exit IP for passage 0" \
+            "" \
+            "Maintenance:" \
+            "  just clean                - Clean up stopped containers" \
+            "  just restart 0            - Restart passage 0" \
+            "  just update-configs       - Download fresh VPN configs" \
+            "" \
+            "For more commands: just --list"

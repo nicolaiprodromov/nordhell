@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Change to the parent directory (project root)
+cd "$SCRIPT_DIR/.."
+
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 download_fresh_configs() {
     local UPDATE_CONFIGS=$1
     local FORCE_DOWNLOAD=false
@@ -83,14 +93,14 @@ start_vpn_tunnel() {
     
     local USED_PORTS=$(docker ps --filter "name=nordhell-passage-" --format "{{.Ports}}" | grep -oP "0.0.0.0:\K\d+" || echo "")
     
-    local PORT=1080
+    local PORT=${SOCKS_BASE_PORT:-1080}
     
     while echo "$USED_PORTS" | grep -q "$PORT"; do
         PORT=$((PORT + 1))
         
-        if [ $PORT -gt 1180 ]; then
-            echo "Warning: Reached port limit, restarting from 1080"
-            PORT=1080
+        if [ $PORT -gt ${SOCKS_MAX_PORT:-1180} ]; then
+            echo "Warning: Reached port limit, restarting from ${SOCKS_BASE_PORT:-1080}"
+            PORT=${SOCKS_BASE_PORT:-1080}
             break
         fi
     done
@@ -195,7 +205,7 @@ if [[ "$VPN_CONFIG" =~ ^([0-9]+)-([0-9]+)$ ]]; then
     done
     echo "Successfully started: $SUCCESS_COUNT tunnels"
     echo "Failed to start: $FAIL_COUNT tunnels"
-    echo "Run './status.sh' to see all active tunnels"
+    echo "Run './scripts/status.sh' to see all active tunnels"
     exit 0
 else
     

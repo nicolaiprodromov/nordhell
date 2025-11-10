@@ -23,6 +23,8 @@ services:
       - .env
     environment:
       - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
+      - SOCKS_BASE_PORT=${SOCKS_BASE_PORT:-1080}
+      - SOCKS_MAX_PORT=${SOCKS_MAX_PORT:-1180}
     tmpfs:
       - /run/vpn-credentials:size=1M,mode=700,noexec,nosuid
     security_opt:
@@ -34,7 +36,7 @@ services:
     devices:
       - /dev/net/tun:/dev/net/tun
     ports:
-      - "${SOCKS_PORT:-1080}:1080"
+      - "${SOCKS_PORT:-${SOCKS_BASE_PORT:-1080}}:1080"
     restart: unless-stopped
     init: true
     dns:

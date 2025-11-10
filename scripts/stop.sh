@@ -1,9 +1,15 @@
 #!/bin/bash
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+# Change to the parent directory (project root)
+cd "$SCRIPT_DIR/.."
+
 if [ -z "$1" ]; then
-    echo "Usage: ./stop.sh <ID|all>"
+    echo "Usage: ./scripts/stop.sh <ID|all>"
     echo "Examples:"
-    echo "  ./stop.sh 0     
-    echo "  ./stop.sh all   
+    echo "  ./scripts/stop.sh 0     
+    echo "  ./scripts/stop.sh all   
     echo
     echo "Currently running tunnels:"
     

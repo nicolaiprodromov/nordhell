@@ -1,24 +1,20 @@
 #!/bin/bash
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR/.."
+
 CHECK_MARK="✓" 
 X_MARK="✗"
-
-echo "-------------------------------------"
-echo "LLUSTR TNNLs:"
-echo "-------------------------------------"
-
 
 if ! docker ps --filter "name=nordhell-passage-" | grep -q nordhell-passage; then
     echo "No active VPN tunnels found."
     exit 0
 fi
 
-
 if ! command -v docker &> /dev/null; then
     echo "Error: Docker is not installed or not in PATH"
     exit 1
 fi
-
 
 TABLE_DATA=$(mktemp)
 
@@ -29,11 +25,7 @@ fi
 
 trap 'rm -f "$TABLE_DATA"' EXIT
 
-
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-
-echo -e "TUNNEL\tPORT\tSTATUS\tTIME ALIVE\tENTRYPOINT IP\tENTRYPOINT\tEXITPOINT IP\tEXITPOINT\tMEMORY" > "$TABLE_DATA"
+echo -e "PASSAGE\tPORT\tSTATUS\tTIME ALIVE\tENTRYPOINT IP\tENTRYPOINT\tEXITPOINT IP\tEXITPOINT\tMEMORY" > "$TABLE_DATA"
 echo -e "------\t----\t------\t----------\t------\t----------\t------------\t---------\t------" >> "$TABLE_DATA"
 
 
@@ -177,7 +169,6 @@ get_country_name() {
     esac
 }
 
-
 determine_cgroup_version() {
     if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
         echo "2"
@@ -186,35 +177,26 @@ determine_cgroup_version() {
     fi
 }
 
-
 CGROUP_VERSION=$(determine_cgroup_version)
 
-
-echo "Gathering container information..." >&2
 CONTAINER_DATA=$(docker ps --filter "name=nordhell-passage-" --format "{{.ID}}|{{.Names}}|{{.Status}}|{{.Ports}}")
-
 
 mapfile -t CONTAINER_ARRAY < <(echo "$CONTAINER_DATA" | sort -t '-' -k4 -n)
 
-
 for container_info in "${CONTAINER_ARRAY[@]}"; do
-    
     IFS='|' read -r CONTAINER_ID CONTAINER STATUS_TEXT PORT_INFO <<< "$container_info"
-    
     
     if [[ "$CONTAINER" =~ nordhell-passage-([0-9]+) ]]; then
         TUNNEL_ID="${BASH_REMATCH[1]}"
-        TUNNEL_NAME="LLUSTR[$TUNNEL_ID]"
+        TUNNEL_NAME="NORDHELL[$TUNNEL_ID]"
     else
         TUNNEL_NAME="$CONTAINER"
     fi
-    
     
     PORT="N/A"
     if [[ "$PORT_INFO" =~ 0\.0\.0\.0:([0-9]+)- ]]; then
         PORT="${BASH_REMATCH[1]}"
     fi
-    
     
     if [[ "$STATUS_TEXT" == *"Up"* && "$STATUS_TEXT" != *"unhealthy"* ]]; then
         STATUS="$CHECK_MARK"
@@ -222,9 +204,7 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
         STATUS="$X_MARK"
     fi
     
-    
     CREATED_TIME=$(docker inspect -f '{{.Created}}' "$CONTAINER_ID" 2>/dev/null)
-    
     
     TIME_ALIVE="Unknown"
     if [ -n "$CREATED_TIME" ]; then
@@ -247,8 +227,6 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
         fi
     fi
     
-    
-    
     VPN_SERVER="Unknown" 
     SERVER_CACHE_PATH="/tmp/vpn_server_${CONTAINER_ID}"
     
@@ -262,12 +240,10 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
         fi
     fi
     
-    
     ENTRYPOINT_LOCATION="Unknown" 
     if [[ -n "$TUNNEL_ID" ]]; then
         CONFIG_NUM_PADDED=$(printf "%03d" "$TUNNEL_ID")
-        CONFIG_FILE_PATH=$(find "${SCRIPT_DIR}/vpn-configs/" -maxdepth 1 -type f -name "${CONFIG_NUM_PADDED}-*.tcp.ovpn" -print -quit 2>/dev/null)
-        
+        CONFIG_FILE_PATH=$(find "vpn-configs/" -maxdepth 1 -type f -name "${CONFIG_NUM_PADDED}-*.tcp.ovpn" -print -quit 2>/dev/null)
         if [[ -n "$CONFIG_FILE_PATH" ]]; then
             CONFIG_FILENAME=$(basename "$CONFIG_FILE_PATH")
             if [[ "$CONFIG_FILENAME" =~ ^[0-9]{3}-([a-z]{2})[0-9a-zA-Z]*\.nordvpn\.com ]]; then
@@ -276,31 +252,23 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
             fi
         fi
     fi
-
     
     EXITPOINT_IP="Unknown"
     EXITPOINT_COUNTRY="Unknown"
     if [[ "$PORT" != "N/A" && "$STATUS" == "$CHECK_MARK" ]]; then
-        
         EXITPOINT_INFO=$(timeout 10 curl -s --socks5 127.0.0.1:$PORT https://ipinfo.io/json 2>/dev/null || echo "")
         if [[ -n "$EXITPOINT_INFO" ]]; then
-            
             EXITPOINT_IP=$(echo "$EXITPOINT_INFO" | grep -o '"ip"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"ip"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "Unknown")
             EXITPOINT_COUNTRY=$(echo "$EXITPOINT_INFO" | grep -o '"country"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"country"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/' || echo "Unknown")
         fi
     fi
     
-    
-    
     CONTAINER_PID=$(docker inspect --format='{{.State.Pid}}' "$CONTAINER_ID" 2>/dev/null)
     MEMORY_MB="0.00"
     
     if [[ -n "$CONTAINER_PID" && "$CONTAINER_PID" != "0" ]]; then
-        
         if [ -f "/proc/$CONTAINER_PID/cgroup" ]; then
-            
             if [ "$CGROUP_VERSION" = "1" ]; then
-                
                 MEMORY_CGROUP_PATH=$(grep memory /proc/$CONTAINER_PID/cgroup | cut -d: -f3)
                 if [ -n "$MEMORY_CGROUP_PATH" ]; then
                     MEMORY_USAGE_FILE="/sys/fs/cgroup/memory$MEMORY_CGROUP_PATH/memory.usage_in_bytes"
@@ -312,7 +280,6 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
                     fi
                 fi
             else
-                
                 CGROUP_PATH=$(grep '' /proc/$CONTAINER_PID/cgroup | cut -d: -f3)
                 if [ -n "$CGROUP_PATH" ]; then
                     MEMORY_USAGE_FILE="/sys/fs/cgroup$CGROUP_PATH/memory.current"
@@ -331,14 +298,9 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
     if [[ "$MEMORY_MB" = "0.00" ]]; then
         MEMORY_STATS=$(docker stats --no-stream --format "{{.MemUsage}}" "$CONTAINER_ID" 2>/dev/null | head -1)
         if [[ -n "$MEMORY_STATS" ]]; then
-            
             MEMORY_USAGE_PART=$(echo "$MEMORY_STATS" | cut -d'/' -f1 | tr -d ' ')
-            
-            
             MEMORY_VALUE=$(echo "$MEMORY_USAGE_PART" | sed -E 's/([0-9.]+).*/\1/')
             MEMORY_UNIT=$(echo "$MEMORY_USAGE_PART" | sed -E 's/[0-9.]+//')
-            
-            
             case "$MEMORY_UNIT" in
                 "KiB")
                     MEMORY_MB=$(LC_NUMERIC=C printf "%.2f" $(echo "scale=4; $MEMORY_VALUE / 1024" | bc))
@@ -350,23 +312,16 @@ for container_info in "${CONTAINER_ARRAY[@]}"; do
                     MEMORY_MB=$(LC_NUMERIC=C printf "%.2f" $(echo "scale=2; $MEMORY_VALUE * 1024" | bc))
                     ;;
                 *)
-                    
                     ;;
             esac
         fi
     fi
-    
-    
+
     TOTAL_MEMORY_MB=$(LC_NUMERIC=C printf "%.2f" $(echo "scale=2; $TOTAL_MEMORY_MB + $MEMORY_MB" | bc))
     MEMORY_DISPLAY="${MEMORY_MB}MB"
-    
-    
     echo -e "$TUNNEL_NAME\t$PORT\t$STATUS\t$TIME_ALIVE\t$VPN_SERVER\t$ENTRYPOINT_LOCATION\t$EXITPOINT_IP\t$EXITPOINT_COUNTRY\t$MEMORY_DISPLAY" >> "$TABLE_DATA"
 done
 
-
 column -t -s $'\t' "$TABLE_DATA"
 
-
 echo -e "\nTotal memory: ${TOTAL_MEMORY_MB} MB"
-echo "-------------------------------------"
