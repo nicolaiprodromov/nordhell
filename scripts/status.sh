@@ -6,7 +6,7 @@ cd "$SCRIPT_DIR/.."
 CHECK_MARK="✓" 
 X_MARK="✗"
 
-if ! docker ps --filter "name=nordhell-passage-" | grep -q nordhell-passage; then
+if ! docker ps --filter "name=passage-" | grep -q passage; then
     echo "No active VPN tunnels found."
     exit 0
 fi
@@ -179,16 +179,16 @@ determine_cgroup_version() {
 
 CGROUP_VERSION=$(determine_cgroup_version)
 
-CONTAINER_DATA=$(docker ps --filter "name=nordhell-passage-" --format "{{.ID}}|{{.Names}}|{{.Status}}|{{.Ports}}")
+CONTAINER_DATA=$(docker ps --filter "name=passage-" --format "{{.ID}}|{{.Names}}|{{.Status}}|{{.Ports}}")
 
 mapfile -t CONTAINER_ARRAY < <(echo "$CONTAINER_DATA" | sort -t '-' -k4 -n)
 
 for container_info in "${CONTAINER_ARRAY[@]}"; do
     IFS='|' read -r CONTAINER_ID CONTAINER STATUS_TEXT PORT_INFO <<< "$container_info"
     
-    if [[ "$CONTAINER" =~ nordhell-passage-([0-9]+) ]]; then
+    if [[ "$CONTAINER" =~ passage-([0-9]+) ]]; then
         TUNNEL_ID="${BASH_REMATCH[1]}"
-        TUNNEL_NAME="NORDHELL[$TUNNEL_ID]"
+        TUNNEL_NAME="PASSAGE[$TUNNEL_ID]"
     else
         TUNNEL_NAME="$CONTAINER"
     fi

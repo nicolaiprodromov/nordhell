@@ -1,16 +1,15 @@
 #!/bin/bash
 set -e
 
-mkdir -p /run/vpn-credentials
+CONFIG_NUM=$(printf "%03d" ${VPN_CONFIG_NUM:-0})
+CONFIG_FILE=$(ls -1 /etc/openvpn/vpn-configs/${CONFIG_NUM}-*.tcp.ovpn 2>/dev/null | head -1)
 
-umask 077
-echo "$VPN_USERNAME" > /run/vpn-credentials/auth.txt
-echo "$VPN_PASSWORD" >> /run/vpn-credentials/auth.txt
+if [ -z "$CONFIG_FILE" ]; then
+    echo "Error: No VPN config found for number ${VPN_CONFIG_NUM}"
+    exit 1
+fi
 
-chmod 600 /run/vpn-credentials/auth.txt
-
-export VPN_USERNAME=""
-export VPN_PASSWORD=""
+cp "$CONFIG_FILE" /etc/openvpn/config/nordvpn.ovpn
 
 iptables -F
 iptables -t nat -F
@@ -19,19 +18,11 @@ iptables -P FORWARD ACCEPT
 iptables -P OUTPUT ACCEPT
 
 echo "Starting OpenVPN..."
-openvpn --config /etc/openvpn/config/nordvpn.ovpn --connect-retry-max 3 --connect-timeout 10 --daemon
-
-(
-  sleep 30
-  
-  dd if=/dev/urandom of=/run/vpn-credentials/auth.txt bs=1 count=50 conv=notrunc 2>/dev/null
-  
-  dd if=/dev/zero of=/run/vpn-credentials/auth.txt bs=1 count=50 conv=notrunc 2>/dev/null
-  
-  rm -f /run/vpn-credentials/auth.txt
-  
-  echo "Credentials file securely wiped"
-) &
+openvpn --config /etc/openvpn/config/nordvpn.ovpn \
+        --auth-user-pass <(printf "%s\n%s\n" "$VPN_USERNAME" "$VPN_PASSWORD") \
+        --connect-retry-max 3 \
+        --connect-timeout 10 \
+        --daemon
 
 echo "Waiting for VPN connection to be established..."
 MAX_WAIT=15

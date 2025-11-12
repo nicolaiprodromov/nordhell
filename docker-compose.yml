@@ -13,10 +13,8 @@ services:
   nordhell-passage:
     build:
       context: .
-      args:
-        - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
-    image: nicolaiprodromov/nordhell-passage:latest
-    container_name: nordhell-passage-${VPN_CONFIG_NUM:-0}
+    image: passage-${VPN_CONFIG_NUM:-0}:latest
+    container_name: passage-${VPN_CONFIG_NUM:-0}
     networks:
       - nordhell-network
     env_file:
@@ -25,8 +23,10 @@ services:
       - VPN_CONFIG_NUM=${VPN_CONFIG_NUM:-0}
       - SOCKS_BASE_PORT=${SOCKS_BASE_PORT:-1080}
       - SOCKS_MAX_PORT=${SOCKS_MAX_PORT:-1180}
-    tmpfs:
-      - /run/vpn-credentials:size=1M,mode=700,noexec,nosuid
+      - VPN_USERNAME=${VPN_USERNAME}
+      - VPN_PASSWORD=${VPN_PASSWORD}
+    volumes:
+      - ./vpn-configs:/etc/openvpn/vpn-configs:ro
     security_opt:
       - no-new-privileges:true
       - seccomp:unconfined
@@ -52,3 +52,4 @@ services:
 networks:
   nordhell-network:
     name: nordhell-network
+    external: true

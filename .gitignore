@@ -8,9 +8,6 @@ auth.txt
 vpn-configs/
 vpn-configs/*
 
-.llustr_checksums/
-.llustr_checksums/*
-
 server/
 
 .vscode/

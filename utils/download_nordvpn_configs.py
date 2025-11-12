@@ -89,8 +89,8 @@ def download_nordvpn_zip(output_dir, protocol='tcp', count=200, max_per_country=
                     elif stripped_line.startswith('keepalive') and has_ping_restart:
                         continue
                     elif stripped_line == 'auth-user-pass':
-                        new_lines.append('auth-user-pass /run/vpn-credentials/auth.txt')
                         auth_user_pass_modified = True
+                        continue
                     elif stripped_line.startswith('script-security'):
                         script_security_found = True
                         try:
@@ -108,7 +108,7 @@ def download_nordvpn_zip(output_dir, protocol='tcp', count=200, max_per_country=
                         continue
                     else:
                         new_lines.append(line)
-                if not auth_user_pass_modified: new_lines.insert(1, 'auth-user-pass /run/vpn-credentials/auth.txt')
+
                 if not script_security_found: new_lines.insert(1, 'script-security 2')
                 if not has_ping_restart:
                     new_lines.append('ping-restart 60')
